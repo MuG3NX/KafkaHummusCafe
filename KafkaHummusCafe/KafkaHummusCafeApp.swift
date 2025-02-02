@@ -1,17 +1,14 @@
-//
-//  KafkaHummusCafeApp.swift
-//  KafkaHummusCafe
-//
-//  Created by Alessandro Bryk on 01.02.2025.
-//
-
 import SwiftUI
 
 @main
 struct KafkaHummusCafeApp: App {
+    let persistenceController = PersistenceController.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .preferredColorScheme(.dark)
+                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }

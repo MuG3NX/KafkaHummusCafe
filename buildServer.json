@@ -1,0 +1,19 @@
+{
+	"name": "xcode build server",
+	"version": "0.2",
+	"bspVersion": "2.0",
+	"languages": [
+		"c",
+		"cpp",
+		"objective-c",
+		"objective-cpp",
+		"swift"
+	],
+	"argv": [
+		"/usr/local/bin/xcode-build-server"
+	],
+	"workspace": "/Users/alessandrobryk/Documents/KafkaHummusCafe/KafkaHummusCafe.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/alessandrobryk/Library/Developer/Xcode/DerivedData/KafkaHummusCafe-exkbkguxksakiaherxbchjelqelr",
+	"scheme": "KafkaHummusCafe",
+	"kind": "xcode"
+}

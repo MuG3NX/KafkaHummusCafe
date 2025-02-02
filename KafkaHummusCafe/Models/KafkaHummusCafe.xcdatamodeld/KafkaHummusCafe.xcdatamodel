@@ -1,0 +1,9 @@
+entity TransactionEntity {
+    id: UUID
+    amount: Double
+    date: Date
+    type: String
+    paymentMethod: String
+    category: String
+    notes: String?
+} 

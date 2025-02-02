@@ -7,18 +7,50 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		CB3DC0E62D4E65830018D9A7 /* KafkaHummusCafeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC0E52D4E65830018D9A7 /* KafkaHummusCafeApp.swift */; };
-		CB3DC0E82D4E65830018D9A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC0E72D4E65830018D9A7 /* ContentView.swift */; };
 		CB3DC0EA2D4E65850018D9A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CB3DC0E92D4E65850018D9A7 /* Assets.xcassets */; };
 		CB3DC0ED2D4E65850018D9A7 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CB3DC0EC2D4E65850018D9A7 /* Preview Assets.xcassets */; };
+		CB3DC1162D4E6C040018D9A7 /* KafkaHummusCafeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1152D4E6C040018D9A7 /* KafkaHummusCafeApp.swift */; };
+		CB3DC1182D4E6C580018D9A7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1172D4E6C580018D9A7 /* ContentView.swift */; };
+		CB3DC11A2D4E6C6B0018D9A7 /* ThemeColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1192D4E6C6B0018D9A7 /* ThemeColors.swift */; };
+		CB3DC11C2D4E6C830018D9A7 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC11B2D4E6C830018D9A7 /* Transaction.swift */; };
+		CB3DC11E2D4E6CB70018D9A7 /* LoginViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC11D2D4E6CB70018D9A7 /* LoginViewModel.swift */; };
+		CB3DC1202D4E6CC20018D9A7 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC11F2D4E6CC20018D9A7 /* LoginView.swift */; };
+		CB3DC1222D4E6CFA0018D9A7 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1212D4E6CFA0018D9A7 /* DashboardViewModel.swift */; };
+		CB3DC1242D4E6D020018D9A7 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1232D4E6D020018D9A7 /* DashboardView.swift */; };
+		CB3DC1262D4E6D1F0018D9A7 /* AnalyticsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1252D4E6D1F0018D9A7 /* AnalyticsViewModel.swift */; };
+		CB3DC1282D4E6D300018D9A7 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1272D4E6D2F0018D9A7 /* AnalyticsView.swift */; };
+		CB3DC12A2D4E6D4D0018D9A7 /* TransactionInputViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1292D4E6D4D0018D9A7 /* TransactionInputViewModel.swift */; };
+		CB3DC12C2D4E6D5D0018D9A7 /* TransactionInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC12B2D4E6D5D0018D9A7 /* TransactionInputView.swift */; };
+		CB3DC12E2D4E6DA50018D9A7 /* ScanResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC12D2D4E6DA50018D9A7 /* ScanResult.swift */; };
+		CB3DC1392D4E72180018D9A7 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1382D4E72180018D9A7 /* PersistenceController.swift */; };
+		CB3DC13B2D4E749E0018D9A7 /* InvoicePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC13A2D4E749E0018D9A7 /* InvoicePreview.swift */; };
+		CB3DC13D2D4E74BE0018D9A7 /* InvoicePreviewViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC13C2D4E74BE0018D9A7 /* InvoicePreviewViewModel.swift */; };
+		CB3DC13F2D4E75460018D9A7 /* InvoicePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC13E2D4E75460018D9A7 /* InvoicePreviewView.swift */; };
+		CB3DC1422D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = CB3DC1402D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodeld */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		CB3DC0E22D4E65830018D9A7 /* KafkaHummusCafe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KafkaHummusCafe.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CB3DC0E52D4E65830018D9A7 /* KafkaHummusCafeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KafkaHummusCafeApp.swift; sourceTree = "<group>"; };
-		CB3DC0E72D4E65830018D9A7 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CB3DC0E92D4E65850018D9A7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CB3DC0EC2D4E65850018D9A7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		CB3DC1152D4E6C040018D9A7 /* KafkaHummusCafeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KafkaHummusCafeApp.swift; sourceTree = "<group>"; };
+		CB3DC1172D4E6C580018D9A7 /* ContentView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		CB3DC1192D4E6C6B0018D9A7 /* ThemeColors.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ThemeColors.swift; sourceTree = "<group>"; };
+		CB3DC11B2D4E6C830018D9A7 /* Transaction.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		CB3DC11D2D4E6CB70018D9A7 /* LoginViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoginViewModel.swift; sourceTree = "<group>"; };
+		CB3DC11F2D4E6CC20018D9A7 /* LoginView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		CB3DC1212D4E6CFA0018D9A7 /* DashboardViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		CB3DC1232D4E6D020018D9A7 /* DashboardView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		CB3DC1252D4E6D1F0018D9A7 /* AnalyticsViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnalyticsViewModel.swift; sourceTree = "<group>"; };
+		CB3DC1272D4E6D2F0018D9A7 /* AnalyticsView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		CB3DC1292D4E6D4D0018D9A7 /* TransactionInputViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransactionInputViewModel.swift; sourceTree = "<group>"; };
+		CB3DC12B2D4E6D5D0018D9A7 /* TransactionInputView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TransactionInputView.swift; sourceTree = "<group>"; };
+		CB3DC12D2D4E6DA50018D9A7 /* ScanResult.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScanResult.swift; sourceTree = "<group>"; };
+		CB3DC1382D4E72180018D9A7 /* PersistenceController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		CB3DC13A2D4E749E0018D9A7 /* InvoicePreview.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InvoicePreview.swift; sourceTree = "<group>"; };
+		CB3DC13C2D4E74BE0018D9A7 /* InvoicePreviewViewModel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InvoicePreviewViewModel.swift; sourceTree = "<group>"; };
+		CB3DC13E2D4E75460018D9A7 /* InvoicePreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InvoicePreviewView.swift; sourceTree = "<group>"; };
+		CB3DC1412D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = KafkaHummusCafe.xcdatamodel; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,8 +83,12 @@
 		CB3DC0E42D4E65830018D9A7 /* KafkaHummusCafe */ = {
 			isa = PBXGroup;
 			children = (
-				CB3DC0E52D4E65830018D9A7 /* KafkaHummusCafeApp.swift */,
-				CB3DC0E72D4E65830018D9A7 /* ContentView.swift */,
+				CB3DC1402D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodeld */,
+				CB3DC1152D4E6C040018D9A7 /* KafkaHummusCafeApp.swift */,
+				CB3DC1122D4E6BB70018D9A7 /* Theme */,
+				CB3DC1112D4E6BAD0018D9A7 /* ViewModels */,
+				CB3DC1102D4E6BA50018D9A7 /* Views */,
+				CB3DC10E2D4E6B830018D9A7 /* Models */,
 				CB3DC0E92D4E65850018D9A7 /* Assets.xcassets */,
 				CB3DC0EB2D4E65850018D9A7 /* Preview Content */,
 			);
@@ -65,6 +101,50 @@
 				CB3DC0EC2D4E65850018D9A7 /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		CB3DC10E2D4E6B830018D9A7 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CB3DC13A2D4E749E0018D9A7 /* InvoicePreview.swift */,
+				CB3DC1382D4E72180018D9A7 /* PersistenceController.swift */,
+				CB3DC12D2D4E6DA50018D9A7 /* ScanResult.swift */,
+				CB3DC11B2D4E6C830018D9A7 /* Transaction.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		CB3DC1102D4E6BA50018D9A7 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CB3DC13E2D4E75460018D9A7 /* InvoicePreviewView.swift */,
+				CB3DC12B2D4E6D5D0018D9A7 /* TransactionInputView.swift */,
+				CB3DC1272D4E6D2F0018D9A7 /* AnalyticsView.swift */,
+				CB3DC1232D4E6D020018D9A7 /* DashboardView.swift */,
+				CB3DC11F2D4E6CC20018D9A7 /* LoginView.swift */,
+				CB3DC1172D4E6C580018D9A7 /* ContentView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CB3DC1112D4E6BAD0018D9A7 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				CB3DC13C2D4E74BE0018D9A7 /* InvoicePreviewViewModel.swift */,
+				CB3DC1292D4E6D4D0018D9A7 /* TransactionInputViewModel.swift */,
+				CB3DC1252D4E6D1F0018D9A7 /* AnalyticsViewModel.swift */,
+				CB3DC1212D4E6CFA0018D9A7 /* DashboardViewModel.swift */,
+				CB3DC11D2D4E6CB70018D9A7 /* LoginViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		CB3DC1122D4E6BB70018D9A7 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				CB3DC1192D4E6C6B0018D9A7 /* ThemeColors.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -99,6 +179,7 @@
 				TargetAttributes = {
 					CB3DC0E12D4E65830018D9A7 = {
 						CreatedOnToolsVersion = 15.2;
+						LastSwiftMigration = 1520;
 					};
 				};
 			};
@@ -137,8 +218,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CB3DC0E82D4E65830018D9A7 /* ContentView.swift in Sources */,
-				CB3DC0E62D4E65830018D9A7 /* KafkaHummusCafeApp.swift in Sources */,
+				CB3DC13F2D4E75460018D9A7 /* InvoicePreviewView.swift in Sources */,
+				CB3DC1202D4E6CC20018D9A7 /* LoginView.swift in Sources */,
+				CB3DC1242D4E6D020018D9A7 /* DashboardView.swift in Sources */,
+				CB3DC12C2D4E6D5D0018D9A7 /* TransactionInputView.swift in Sources */,
+				CB3DC12A2D4E6D4D0018D9A7 /* TransactionInputViewModel.swift in Sources */,
+				CB3DC1182D4E6C580018D9A7 /* ContentView.swift in Sources */,
+				CB3DC1282D4E6D300018D9A7 /* AnalyticsView.swift in Sources */,
+				CB3DC12E2D4E6DA50018D9A7 /* ScanResult.swift in Sources */,
+				CB3DC13D2D4E74BE0018D9A7 /* InvoicePreviewViewModel.swift in Sources */,
+				CB3DC1162D4E6C040018D9A7 /* KafkaHummusCafeApp.swift in Sources */,
+				CB3DC1422D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodeld in Sources */,
+				CB3DC1392D4E72180018D9A7 /* PersistenceController.swift in Sources */,
+				CB3DC11C2D4E6C830018D9A7 /* Transaction.swift in Sources */,
+				CB3DC1262D4E6D1F0018D9A7 /* AnalyticsViewModel.swift in Sources */,
+				CB3DC11E2D4E6CB70018D9A7 /* LoginViewModel.swift in Sources */,
+				CB3DC11A2D4E6C6B0018D9A7 /* ThemeColors.swift in Sources */,
+				CB3DC13B2D4E749E0018D9A7 /* InvoicePreview.swift in Sources */,
+				CB3DC1222D4E6CFA0018D9A7 /* DashboardViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,12 +366,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"KafkaHummusCafe/Preview Content\"";
 				DEVELOPMENT_TEAM = H2T4NM3M8F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan invoices";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "We use Face ID to securely log you into the Kafka Hummus Café Dashboard";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need photo library access to select invoice images";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +389,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.alessandro.KafkaHummusCafe;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -298,12 +400,16 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"KafkaHummusCafe/Preview Content\"";
 				DEVELOPMENT_TEAM = H2T4NM3M8F;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan invoices";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "We use Face ID to securely log you into the Kafka Hummus Café Dashboard";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need photo library access to select invoice images";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -344,6 +450,19 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCVersionGroup section */
+		CB3DC1402D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodeld */ = {
+			isa = XCVersionGroup;
+			children = (
+				CB3DC1412D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodel */,
+			);
+			currentVersion = CB3DC1412D4E75F30018D9A7 /* KafkaHummusCafe.xcdatamodel */;
+			path = KafkaHummusCafe.xcdatamodeld;
+			sourceTree = "<group>";
+			versionGroupType = wrapper.xcdatamodel;
+		};
+/* End XCVersionGroup section */
 	};
 	rootObject = CB3DC0DA2D4E65830018D9A7 /* Project object */;
 }
