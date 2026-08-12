@@ -90,7 +90,7 @@ select is(public.get_business_date_for_instant('22222222-2222-2222-2222-22222222
 select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 0, 'unauthorized employee cannot read revenue');
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
-select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 1, 'assigned employee can list the assigned location');
+select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 2, 'assigned employee can list both assigned locations');
 select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
 select throws_ok(
   $$select * from public.submit_revenue_entry('22222222-2222-2222-2222-222222222222', public.get_current_business_date('22222222-2222-2222-2222-222222222222'), 10000, 5000, 5000, 0, 0, 5000, null)$$,
