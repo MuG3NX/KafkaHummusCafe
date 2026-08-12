@@ -10,5 +10,5 @@
     "typecheck": "npm run typecheck -w @kafka/web"
   },
   "workspaces": ["web"],
-  "engines": { "node": ">=20.0.0" }
+  "engines": { "node": ">=22.0.0" }
 }

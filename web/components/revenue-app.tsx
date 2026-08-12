@@ -111,7 +111,7 @@ export function RevenueApp() {
   }
 
   // loadWorkspace is intentionally recreated only with the Supabase client; auth events refresh the same workspace.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => { void loadWorkspace(); if (!supabase) return; const { data } = supabase.auth.onAuthStateChange(() => { void loadWorkspace(); }); return () => data.subscription.unsubscribe(); }, [supabase]);
 
   function updateDraft(key: keyof Draft, value: string) { setDraft((current) => ({ ...current, [key]: value })); }
