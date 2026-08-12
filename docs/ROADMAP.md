@@ -1,5 +1,9 @@
 # Roadmap
 
+## Current milestone — M2 Shifts & Hours
+
+M1 Revenue is production-deployed, accepted, and frozen except for genuine bugs. The active implementation milestone is the focused employee shifts/hours vertical slice described in [`M2_SHIFTS.md`](M2_SHIFTS.md).
+
 ## M0 — Foundation + Touchable Preview
 Goal: establish the repository contract and a phone-first visual slice immediately.
 - PWA shell and manifest

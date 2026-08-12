@@ -23,7 +23,7 @@ Build one modular restaurant platform, not separate throwaway apps. The first us
 10. UI must be visually calm, modern, extremely simple, large-touch-target, and usable one-handed during restaurant service.
 
 ## Current milestone
-M1 Revenue Tracker. See `docs/M1_REVENUE.md`.
+M1 Revenue is accepted and frozen except for genuine bugs. The current milestone is M2 Shifts & Hours. See `docs/M2_SHIFTS.md`.
 
 ## Current real workflow
 Revenue is written on paper and later copied manually into Excel. Daily fields are total revenue, card, cash, cash-register expenses, euros, and physical cash handed to the owner. Roughly 3–4 authorized users may submit revenue. Only the owner may correct submitted revenue. There are about 10 employees; shifts are currently tracked in Excel.

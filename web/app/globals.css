@@ -42,4 +42,18 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .error { margin: 12px 0 0; font-size: 14px; font-weight: 700; }
 .auth-card { margin-top: 15vh; }
 .auth-card h1 { font-size: 48px; }
+.module-nav { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 5px; background: #e5e1d8; border-radius: 17px; margin-bottom: 22px; }
+.module-nav button { min-height: 42px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 900; }
+.module-nav button.active { background: var(--ink); color: white; }
+.status-card h2 { margin-top: 10px; }
+.total-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.metric { border: 1px solid var(--line); border-radius: 17px; padding: 15px; display: grid; gap: 5px; }
+.metric span, .metric small { color: var(--muted); font-size: 12px; }
+.metric strong { font-size: 22px; }
+.shift-row, .team-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--line); padding: 15px 0; }
+.shift-row:first-of-type, .team-total:first-of-type { border-top: 0; }
+.shift-row strong, .team-total strong { display: block; }
+.shift-duration { text-align: right; white-space: nowrap; font-weight: 800; }
+.shift-duration .btn { display: block; margin-top: 8px; }
+.team-total small { color: var(--muted); font-size: 11px; font-weight: 700; }
 @media (min-width: 700px) { .app-shell { padding-top: 48px; } }

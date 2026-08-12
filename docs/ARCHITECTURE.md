@@ -16,6 +16,8 @@ KAFKA Platform
 └── Integrations: OCR, FANY, notifications, future POS/accounting
 ```
 
+The current active module after the accepted M1 Revenue slice is M2 Shifts. It reuses the existing membership, location, and service-day model; it does not create a separate staff application or onboarding system.
+
 ## Frontend
 - Next.js App Router + TypeScript.
 - PWA installable from iOS/Android home screen.
@@ -41,6 +43,7 @@ Store monetary amounts as integer minor units (`bigint`). Format only at the UI 
 - Store actual instants as `timestamptz`.
 - Store location IANA timezone, initially `Europe/Prague`.
 - Store service-day `business_date` separately.
+- Shifts resolve `business_date` at database-clock start time and retain that association through clock-out and owner correction.
 
 ## Authorization
 Authorization is enforced by Postgres RLS and privileged server/database functions, not only by UI visibility. Initial behavior:
