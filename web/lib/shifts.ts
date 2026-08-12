@@ -18,6 +18,10 @@ export function shiftDurationMinutes(shift: Pick<Shift, "started_at" | "ended_at
   return Math.max(0, Math.round((Date.parse(shift.ended_at) - Date.parse(shift.started_at)) / 60000));
 }
 
+export function elapsedMinutesSince(startedAt: string, now = Date.now()): number {
+  return Math.max(0, Math.floor((now - Date.parse(startedAt)) / 60000));
+}
+
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;

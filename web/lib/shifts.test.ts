@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDuration, instantToLocalDateTime, isDateInPeriod, localDateTimeToInstant, shiftDurationMinutes, totalForBusinessDate, totalForPeriod, type Shift } from "./shifts";
+import { elapsedMinutesSince, formatDuration, instantToLocalDateTime, isDateInPeriod, localDateTimeToInstant, shiftDurationMinutes, totalForBusinessDate, totalForPeriod, type Shift } from "./shifts";
 
 const closedShift = (business_date: string, started_at: string, ended_at: string): Shift => ({
   id: business_date,
@@ -19,6 +19,10 @@ describe("shift calculations", () => {
     const shift = closedShift("2026-08-12", "2026-08-12T21:00:00.000Z", "2026-08-13T00:15:00.000Z");
     expect(shiftDurationMinutes(shift)).toBe(195);
     expect(formatDuration(195)).toBe("3 h 15 min");
+  });
+
+  it("derives display-only elapsed time from the authoritative start", () => {
+    expect(elapsedMinutesSince("2026-08-12T23:00:00.000Z", Date.parse("2026-08-12T23:02:30.000Z"))).toBe(2);
   });
 
   it("groups totals by explicit business date", () => {

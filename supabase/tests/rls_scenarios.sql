@@ -1,6 +1,6 @@
 begin;
 
-select plan(46);
+select plan(48);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -167,6 +167,14 @@ select throws_ok(
   $$delete from public.shifts where membership_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc'$$,
   '42501', null, 'employee cannot delete shifts directly'
 );
+select throws_ok(
+  $$insert into public.shifts (location_id, service_day_id, membership_id, business_date, started_at)
+    values ('22222222-2222-2222-2222-222222222222',
+      (select service_day_id from public.shifts where membership_id = 'cccccccc-cccc-cccc-cccc-cccccccccccc' limit 1),
+      'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      public.get_current_business_date('22222222-2222-2222-2222-222222222222'), now())$$,
+  '42501', null, 'employee cannot insert shifts directly'
+);
 
 select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.shifts where location_id = '22222222-2222-2222-2222-222222222222'), 3, 'owner can read all location shifts');
@@ -179,6 +187,15 @@ select ok((select count(*) = 1 from public.correct_shift(
   (select started_at + interval '2 hours 1 minute' from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
   'forgotten clock-out corrected'
 )), 'owner correction succeeds with a reason');
+select throws_ok(
+  $$select * from public.correct_shift(
+    (select id from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
+    (((select business_date from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')::timestamp + time '04:00:00') at time zone 'Europe/Prague'),
+    (((select business_date from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')::timestamp + time '05:00:00') at time zone 'Europe/Prague'),
+    'cross-boundary correction'
+  )$$,
+  'P0001', null, 'owner correction cannot move a shift to another service day'
+);
 select throws_ok(
   $$select * from public.correct_shift(
     (select id from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),

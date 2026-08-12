@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatDuration, formatShiftDate, formatShiftTime, instantToLocalDateTime, localDateTimeToInstant, totalForBusinessDate, totalForPeriod, type Shift } from "../lib/shifts";
+import { elapsedMinutesSince, formatDuration, formatShiftDate, formatShiftTime, instantToLocalDateTime, localDateTimeToInstant, totalForBusinessDate, totalForPeriod, type Shift } from "../lib/shifts";
 import { getSupabaseBrowserClient } from "../lib/supabase";
 import type { Location } from "../lib/types";
 
@@ -40,6 +40,12 @@ export function ShiftsApp({ onOpenRevenue }: ShiftsAppProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [clockNow, setClockNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function loadWorkspace() {
     if (!supabase) { setLoading(false); return; }
@@ -110,9 +116,11 @@ export function ShiftsApp({ onOpenRevenue }: ShiftsAppProps) {
     <p className="muted">{location.name} · service day {businessDate}</p>
     <div className="banner">● Connected · clock times come from the database</div>
     {error && <p className="error" role="alert">{error}</p>}
-    <section className="card status-card"><div className="kicker">YOUR SHIFT</div>{currentShift && !currentShift.ended_at ? <><h2>Working since {formatShiftTime(currentShift.started_at, location.timezone)}</h2><p className="sub">Keep this shift open until you finish.</p><button className="btn" disabled={busy} onClick={() => void runClockAction("end_shift", currentShift.id)}>{busy ? "Saving…" : "End shift"}</button></> : currentShift ? <><h2>Shift complete</h2><p className="sub">You already have a shift for this service day.</p></> : <><h2>Not clocked in</h2><p className="sub">Start when you begin work. The database records the exact time.</p><button className="btn" disabled={busy} onClick={() => void runClockAction("start_shift")}>{busy ? "Saving…" : "Start shift"}</button></>}</section>
-    <section className="card"><div className="kicker">YOUR HOURS</div><h2>Finalized totals</h2><p className="sub">Open shifts appear above but are not counted until ended.</p><PeriodTotals shifts={ownShifts} businessDate={businessDate} /></section>
-    <section className="card"><div className="kicker">YOUR HISTORY</div><h2>Recent shifts</h2>{ownShifts.filter((shift) => shift.ended_at).slice(0, 8).map((shift) => <ShiftLine key={shift.id} shift={shift} location={location} />)}{ownShifts.filter((shift) => shift.ended_at).length === 0 && <p className="muted">No completed shifts yet.</p>}</section>
+    {!owner && <>
+      <section className="card status-card"><div className="kicker">YOUR SHIFT</div>{currentShift && !currentShift.ended_at ? <><h2>Working since {formatShiftTime(currentShift.started_at, location.timezone)} · {formatDuration(elapsedMinutesSince(currentShift.started_at, clockNow))} elapsed</h2><p className="sub">Keep this shift open until you finish.</p><button className="btn" disabled={busy} onClick={() => void runClockAction("end_shift", currentShift.id)}>{busy ? "Saving…" : "End shift"}</button></> : currentShift ? <><h2>Shift complete</h2><p className="sub">You already have a shift for this service day.</p></> : <><h2>Not clocked in</h2><p className="sub">Start when you begin work. The database records the exact time.</p><button className="btn" disabled={busy} onClick={() => void runClockAction("start_shift")}>{busy ? "Saving…" : "Start shift"}</button></>}</section>
+      <section className="card"><div className="kicker">YOUR HOURS</div><h2>Finalized totals</h2><p className="sub">Open shifts appear above but are not counted until ended.</p><PeriodTotals shifts={ownShifts} businessDate={businessDate} /></section>
+      <section className="card"><div className="kicker">YOUR HISTORY</div><h2>Recent shifts</h2>{ownShifts.filter((shift) => shift.ended_at).slice(0, 8).map((shift) => <ShiftLine key={shift.id} shift={shift} location={location} />)}{ownShifts.filter((shift) => shift.ended_at).length === 0 && <p className="muted">No completed shifts yet.</p>}</section>
+    </>}
     {owner && <>
       <section className="card"><div className="kicker">WORKING NOW</div><h2>{workingNow.length === 0 ? "Nobody clocked in" : `${workingNow.length} working`}</h2>{workingNow.map((shift) => <ShiftLine key={shift.id} shift={shift} location={location} member={memberById.get(shift.membership_id)} />)}</section>
       <section className="card"><div className="kicker">TEAM TOTALS</div><h2>Hours by employee</h2>{membersWithShifts.map((member) => { const memberShifts = shifts.filter((shift) => shift.membership_id === member.id); const day = totalForBusinessDate(memberShifts, businessDate); const week = totalForPeriod(memberShifts, businessDate, "week"); const month = totalForPeriod(memberShifts, businessDate, "month"); return <div className="team-total" key={member.id}><div><strong>{displayName(member)}</strong><div className="muted">Today {formatDuration(day.minutes)} · week {formatDuration(week.minutes)}</div></div><strong>{formatDuration(month.minutes)}<small> this month</small></strong></div>; })}</section>
