@@ -14,7 +14,7 @@ cp web/.env.example web/.env.local
 npm run dev
 ```
 
-Configure the two public Supabase variables, apply the migration with `supabase db push`, and follow [`supabase/README.md`](supabase/README.md) to bootstrap the first owner/location. Financial submissions are intentionally unavailable while offline; this M1 app does not pretend that a local mutation reached the database.
+Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, apply the migrations with `supabase db push`, and follow [`supabase/README.md`](supabase/README.md) to bootstrap the first owner/location. Financial submissions are intentionally unavailable while offline; this M1 app does not pretend that a local mutation reached the database.
 
 The Vercel deployment should use the same two `NEXT_PUBLIC_` variables. Never add a service-role key to GitHub, Vercel browser-visible variables, or this repository.
 

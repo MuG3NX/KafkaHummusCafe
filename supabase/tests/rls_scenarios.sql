@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(21);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -59,6 +59,10 @@ select throws_ok(
 set role authenticated;
 
 select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
+select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-12 23:30:00+00'::timestamptz), '2026-08-12'::date, 'before 05:00 Europe/Prague belongs to the previous service day');
+select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-13 03:00:00+00'::timestamptz), '2026-08-13'::date, 'exactly 05:00 Europe/Prague starts the current service day');
+select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-13 03:00:01+00'::timestamptz), '2026-08-13'::date, 'after 05:00 Europe/Prague remains on the current service day');
+select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-13 09:00:00+00'::timestamptz), '2026-08-13'::date, 'database cutoff converts UTC using the location timezone');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 0, 'unauthorized employee cannot read revenue');
 select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 1, 'assigned employee can list the assigned location');
 select throws_ok(
