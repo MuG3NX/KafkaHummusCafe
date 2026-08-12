@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KAFKA Revenue",
-  description: "KAFKA restaurant revenue tracker",
+  title: "KAFKA Platform",
+  description: "KAFKA restaurant operations platform",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "KAFKA Revenue", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "KAFKA", statusBarStyle: "black-translucent" },
   icons: { apple: "/icon.svg" }
 };
 

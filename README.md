@@ -4,9 +4,9 @@ A mobile-first restaurant operations platform built incrementally from real rest
 
 The repository currently contains the original 2025 Swift experiment and the new web-platform direction. The Swift history is preserved; new platform work is governed by `AGENTS.md` and `docs/`.
 
-## M1 production slice
+## M2 production slice
 
-The production web app lives in `web/`. It uses Next.js, Supabase Auth/Postgres, explicit service-day dates, integer minor-unit money, RLS, and database-side audited owner corrections. Supabase migrations are in `supabase/migrations/`.
+The production web app lives in `web/`. It uses Next.js, Supabase Auth/Postgres, explicit service-day dates, database-clock shift timestamps, RLS, and database-side audited corrections for Revenue and Shifts. Supabase migrations are in `supabase/migrations/`.
 
 ```sh
 npm install
@@ -21,7 +21,8 @@ The Vercel deployment should use the same two `NEXT_PUBLIC_` variables. Never ad
 ## Start here
 - `AGENTS.md` — rules for ChatGPT/Codex work
 - `docs/ARCHITECTURE.md` — technical boundaries and non-negotiables
-- `docs/M1_REVENUE.md` — first production milestone
+- `docs/M1_REVENUE.md` — accepted first production milestone
+- `docs/M2_SHIFTS.md` — active shifts/hours milestone
 - `docs/ROADMAP.md` — staged expansion
 
 ## Immediate preview
