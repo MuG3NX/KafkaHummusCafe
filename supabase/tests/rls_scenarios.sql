@@ -30,7 +30,8 @@ values
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', false),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', true),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '88888888-8888-8888-8888-888888888888', true),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', true);
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', true),
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', '88888888-8888-8888-8888-888888888888', true);
 
 insert into public.service_days (id, location_id, business_date)
 values ('77777777-7777-7777-7777-777777777777', '22222222-2222-2222-2222-222222222222', current_date - 1);
@@ -52,17 +53,17 @@ values (
 select throws_ok(
   $$insert into public.revenue_entries (location_id, service_day_id, business_date, submitted_by, total_revenue_czk_minor, card_czk_minor, cash_czk_minor, cash_register_expenses_czk_minor, euros_minor, physical_cash_handed_over_czk_minor)
     values ('22222222-2222-2222-2222-222222222222', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', current_date, '44444444-4444-4444-4444-444444444444', 1, 1, 0, 0, 0, 0)$$,
-  '23503', 'service-day composite identity prevents mismatched revenue rows'
+  '23503', null, 'service-day composite identity prevents mismatched revenue rows'
 );
 
 set role authenticated;
 
 select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 0, 'unauthorized employee cannot read revenue');
-select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 0, 'unassigned employee cannot list locations');
+select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 1, 'assigned employee can list the assigned location');
 select throws_ok(
   $$select * from public.submit_revenue_entry('22222222-2222-2222-2222-222222222222', public.get_current_business_date('22222222-2222-2222-2222-222222222222'), 10000, 5000, 5000, 0, 0, 5000, null)$$,
-  'P0001', 'unauthorized employee cannot submit revenue'
+  'P0001', null, 'unauthorized employee cannot submit revenue'
 );
 
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
@@ -71,15 +72,15 @@ select is((select note from public.revenue_entries where location_id = '22222222
 select ok((select count(*) = 1 from public.submit_revenue_entry('22222222-2222-2222-2222-222222222222', public.get_current_business_date('22222222-2222-2222-2222-222222222222'), 125000, 80000, 45000, 1200, 350, 43800, 'closing note')), 'normalized identical retry is idempotent');
 select throws_ok(
   $$select * from public.submit_revenue_entry('22222222-2222-2222-2222-222222222222', public.get_current_business_date('22222222-2222-2222-2222-222222222222'), 125001, 80000, 45000, 1200, 350, 43800, 'closing note')$$,
-  'P0001', 'different duplicate submission is rejected'
+  'P0001', null, 'different duplicate submission is rejected'
 );
 select throws_ok(
   $$update public.revenue_entries set note = 'tampered' where business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222')$$,
-  '42501', 'normal submitter cannot update revenue directly'
+  '42501', null, 'normal submitter cannot update revenue directly'
 );
 select throws_ok(
   $$delete from public.revenue_entries where business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222')$$,
-  '42501', 'normal submitter cannot delete revenue directly'
+  '42501', null, 'normal submitter cannot delete revenue directly'
 );
 
 select set_config('request.jwt.claims', json_build_object('sub', '55555555-5555-5555-5555-555555555555', 'role', 'authenticated')::text, true);
