@@ -55,7 +55,7 @@ declare
   employee_membership public.restaurant_memberships;
   service_day public.service_days;
   current_business_date date;
-  started_at_instant timestamptz := now();
+  started_at_instant timestamptz := clock_timestamp();
   new_shift public.shifts;
 begin
   select m.* into employee_membership
@@ -108,7 +108,7 @@ set search_path = public
 as $$
 declare
   shift public.shifts;
-  ended_at_instant timestamptz := now();
+  ended_at_instant timestamptz := clock_timestamp();
   closed_shift public.shifts;
 begin
   select s.* into shift
@@ -172,7 +172,7 @@ begin
   set started_at = p_started_at,
       ended_at = p_ended_at,
       version = shift.version + 1,
-      updated_at = now()
+      updated_at = clock_timestamp()
   where id = shift.id
   returning * into corrected_shift;
 
