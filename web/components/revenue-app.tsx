@@ -89,12 +89,15 @@ export function RevenueApp() {
     const currentUser = sessionData.session?.user;
     if (!currentUser) { setUserId(null); setLoading(false); return; }
     setUserId(currentUser.id);
-    const membershipResult = await supabase.from("restaurant_memberships").select("restaurant_id, location_id, role, can_submit_revenue").eq("user_id", currentUser.id).limit(1).maybeSingle();
+    const membershipResult = await supabase.from("restaurant_memberships").select("restaurant_id, role").eq("user_id", currentUser.id).limit(1).maybeSingle();
     if (membershipResult.error || !membershipResult.data) { setError(membershipResult.error?.message ?? "Your account is not connected to a restaurant yet."); setLoading(false); return; }
-    setOwner(membershipResult.data.role === "owner"); setCanSubmit(Boolean(membershipResult.data.can_submit_revenue) || membershipResult.data.role === "owner" || membershipResult.data.role === "manager");
-    const locationResult = membershipResult.data.location_id ? await supabase.from("locations").select("id, name, timezone").eq("id", membershipResult.data.location_id).single() : await supabase.from("locations").select("id, name, timezone").eq("restaurant_id", membershipResult.data.restaurant_id).limit(1).single();
+    setOwner(membershipResult.data.role === "owner");
+    const locationResult = await supabase.from("locations").select("id, name, timezone").eq("restaurant_id", membershipResult.data.restaurant_id).limit(1).single();
     if (locationResult.error || !locationResult.data) { setError(locationResult.error?.message ?? "No restaurant location is configured."); setLoading(false); return; }
     const currentLocation = locationResult.data as Location; setLocation(currentLocation);
+    const permissionResult = await supabase.rpc("can_submit_revenue", { target_location_id: currentLocation.id });
+    if (permissionResult.error) { setError(permissionResult.error.message); setLoading(false); return; }
+    setCanSubmit(Boolean(permissionResult.data));
     const dateResult = await supabase.rpc("get_current_business_date", { target_location_id: currentLocation.id });
     if (dateResult.error || !dateResult.data) { setError(dateResult.error?.message ?? "Could not resolve the service day."); setLoading(false); return; }
     const currentDate = String(dateResult.data); setBusinessDate(currentDate);

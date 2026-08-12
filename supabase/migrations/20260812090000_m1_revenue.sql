@@ -23,12 +23,19 @@ create table public.profiles (
 create table public.restaurant_memberships (
   id uuid primary key default gen_random_uuid(),
   restaurant_id uuid not null references public.restaurants(id),
-  location_id uuid references public.locations(id),
   user_id uuid not null references auth.users(id) on delete cascade,
   role text not null check (role in ('owner', 'manager', 'employee')),
-  can_submit_revenue boolean not null default false,
   created_at timestamptz not null default now(),
   unique (restaurant_id, user_id)
+);
+
+create table public.membership_location_assignments (
+  id uuid primary key default gen_random_uuid(),
+  membership_id uuid not null references public.restaurant_memberships(id) on delete cascade,
+  location_id uuid not null references public.locations(id) on delete cascade,
+  can_submit_revenue boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (membership_id, location_id)
 );
 
 create table public.service_days (
@@ -36,7 +43,8 @@ create table public.service_days (
   location_id uuid not null references public.locations(id),
   business_date date not null,
   created_at timestamptz not null default now(),
-  unique (location_id, business_date)
+  unique (location_id, business_date),
+  unique (id, location_id, business_date)
 );
 
 create table public.revenue_entries (
@@ -56,6 +64,9 @@ create table public.revenue_entries (
   version integer not null default 1 check (version > 0),
   submitted_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  constraint revenue_entries_service_day_identity_fk
+    foreign key (service_day_id, location_id, business_date)
+    references public.service_days (id, location_id, business_date),
   unique (location_id, business_date)
 );
 
@@ -106,6 +117,22 @@ as $$
   );
 $$;
 
+create or replace function public.can_access_location(target_location_id uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.locations l
+    join public.restaurant_memberships m on m.restaurant_id = l.restaurant_id
+    left join public.membership_location_assignments a
+      on a.membership_id = m.id and a.location_id = l.id
+    where l.id = target_location_id
+      and m.user_id = auth.uid()
+      and (m.role = 'owner' or a.id is not null)
+  );
+$$;
+
 create or replace function public.can_submit_revenue(target_location_id uuid)
 returns boolean
 language sql stable security definer set search_path = public
@@ -114,10 +141,11 @@ as $$
     select 1
     from public.locations l
     join public.restaurant_memberships m on m.restaurant_id = l.restaurant_id
+    left join public.membership_location_assignments a
+      on a.membership_id = m.id and a.location_id = l.id
     where l.id = target_location_id
       and m.user_id = auth.uid()
-      and (m.can_submit_revenue or m.role in ('owner', 'manager'))
-      and (m.location_id is null or m.location_id = target_location_id)
+      and (m.role = 'owner' or coalesce(a.can_submit_revenue, false))
   );
 $$;
 
@@ -129,7 +157,7 @@ declare
   location_timezone text;
   current_business_date date;
 begin
-  if not public.is_restaurant_member((select restaurant_id from public.locations where id = target_location_id)) then
+  if not public.can_access_location(target_location_id) then
     raise exception 'Not authorized for this location';
   end if;
   select timezone into location_timezone from public.locations where id = target_location_id;
@@ -168,6 +196,7 @@ begin
   if p_business_date <> current_date_for_location then
     raise exception 'Revenue must be submitted for the current service day';
   end if;
+  p_note := nullif(trim(p_note), '');
   if p_total_revenue_czk_minor < 0 or p_card_czk_minor < 0 or p_cash_czk_minor < 0
      or p_cash_register_expenses_czk_minor < 0 or p_euros_minor < 0
      or p_physical_cash_handed_over_czk_minor < 0 then
@@ -277,12 +306,13 @@ alter table public.restaurants enable row level security;
 alter table public.locations enable row level security;
 alter table public.profiles enable row level security;
 alter table public.restaurant_memberships enable row level security;
+alter table public.membership_location_assignments enable row level security;
 alter table public.service_days enable row level security;
 alter table public.revenue_entries enable row level security;
 alter table public.revenue_revisions enable row level security;
 
 create policy restaurants_read on public.restaurants for select using (public.is_restaurant_member(id));
-create policy locations_read on public.locations for select using (public.is_restaurant_member(restaurant_id));
+create policy locations_read on public.locations for select using (public.can_access_location(id));
 create policy profiles_read on public.profiles for select using (
   id = auth.uid() or exists (
     select 1 from public.restaurant_memberships mine
@@ -293,11 +323,18 @@ create policy profiles_read on public.profiles for select using (
 create policy memberships_read on public.restaurant_memberships for select using (
   user_id = auth.uid() or public.is_restaurant_owner(restaurant_id)
 );
+create policy membership_location_assignments_read on public.membership_location_assignments for select using (
+  exists (
+    select 1 from public.restaurant_memberships m
+    where m.id = membership_id and (m.user_id = auth.uid() or public.is_restaurant_owner(m.restaurant_id))
+  )
+);
 create policy service_days_read on public.service_days for select using (
-  public.is_restaurant_member((select restaurant_id from public.locations where id = location_id))
+  public.can_access_location(location_id)
 );
 create policy revenue_entries_read on public.revenue_entries for select using (
-  submitted_by = auth.uid() or public.is_location_owner(location_id)
+  public.is_location_owner(location_id)
+  or (public.can_submit_revenue(location_id) and business_date = public.get_current_business_date(location_id))
 );
 create policy revenue_revisions_read on public.revenue_revisions for select using (
   public.is_location_owner((select location_id from public.revenue_entries where id = revenue_entry_id))
@@ -317,6 +354,7 @@ create trigger on_auth_user_created
 revoke execute on function public.is_restaurant_member(uuid) from public;
 revoke execute on function public.is_restaurant_owner(uuid) from public;
 revoke execute on function public.is_location_owner(uuid) from public;
+revoke execute on function public.can_access_location(uuid) from public;
 revoke execute on function public.can_submit_revenue(uuid) from public;
 revoke execute on function public.get_current_business_date(uuid) from public;
 revoke execute on function public.submit_revenue_entry(uuid, date, bigint, bigint, bigint, bigint, bigint, bigint, text) from public;
@@ -327,8 +365,9 @@ grant usage on schema public to authenticated;
 grant execute on function public.is_restaurant_member(uuid) to authenticated;
 grant execute on function public.is_restaurant_owner(uuid) to authenticated;
 grant execute on function public.is_location_owner(uuid) to authenticated;
+grant execute on function public.can_access_location(uuid) to authenticated;
 grant execute on function public.can_submit_revenue(uuid) to authenticated;
-grant select on public.restaurants, public.locations, public.profiles, public.restaurant_memberships, public.service_days, public.revenue_entries, public.revenue_revisions to authenticated;
+grant select on public.restaurants, public.locations, public.profiles, public.restaurant_memberships, public.membership_location_assignments, public.service_days, public.revenue_entries, public.revenue_revisions to authenticated;
 grant execute on function public.get_current_business_date(uuid) to authenticated;
 grant execute on function public.submit_revenue_entry(uuid, date, bigint, bigint, bigint, bigint, bigint, bigint, text) to authenticated;
 grant execute on function public.correct_revenue_entry(uuid, bigint, bigint, bigint, bigint, bigint, bigint, text, text) to authenticated;

@@ -15,5 +15,6 @@ describe("money", () => {
   it("formats exact minor units", () => {
     expect(formatMinorUnits(123450n, "CZK")).toContain("1 234,50");
     expect(formatMinorUnits("1205", "EUR")).toContain("12.05");
+    expect(formatMinorUnits("900719925474099300", "CZK")).toContain("9 007 199 254 740 993");
   });
 });
