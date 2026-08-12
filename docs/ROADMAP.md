@@ -1,0 +1,60 @@
+# Roadmap
+
+## M0 — Foundation + Touchable Preview
+Goal: establish the repository contract and a phone-first visual slice immediately.
+- PWA shell and manifest
+- mobile Today screen
+- revenue form UI using the real fields
+- preview-only browser persistence allowed, visibly marked as preview
+- architecture/product docs
+
+## M1 — Revenue Tracker (first production slice)
+- Supabase project and versioned migrations
+- login/session handling
+- restaurant/location/membership model
+- service day
+- revenue submission
+- role/capability enforcement via RLS
+- submitted record lock for normal users
+- owner correction flow with reason + audit revision
+- history and basic owner summary
+- production deployment + install on iPhone/Android
+
+## M2 — Shifts
+- employee accounts
+- start/end shift and manual owner correction
+- service-day association across midnight
+- employee self-history; owner aggregate view
+- weekly/monthly totals
+
+## M3 — Invoice Capture / OCR
+- camera/upload
+- private original document storage
+- OCR/extraction adapter
+- supplier/invoice/date/net/VAT/gross extraction
+- confidence/validation UI
+- human review + approval
+- unpaid/paid state
+- append-only corrections/audit
+
+## M4 — Costs + Closing
+- approved invoice costs into operational monthly reporting
+- cash-register expense linkage/reconciliation
+- end-of-shift checklist using service-day state
+- missing-item visibility
+
+## M5 — Supplier Ordering / FANY
+- canonical suppliers/products
+- usual-order templates
+- quantity-first mobile order sheet
+- reminder workflow
+- FANY connector only after internal order model is stable
+
+## M6 — Reporting / VAT support
+- revenue/cost/labour dashboards
+- VAT inputs/outputs based on approved data
+- exports/integration aligned with Czech accountant requirements
+- do not claim official accounting correctness without validation
+
+## Later
+Inventory, scheduling, product price history, deeper analytics, accounting connectors, hardware/POS integrations, then potentially native POS capabilities.
