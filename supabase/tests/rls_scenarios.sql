@@ -29,7 +29,6 @@ values
 
 insert into public.membership_location_assignments (membership_id, location_id, can_submit_revenue)
 values
-  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '22222222-2222-2222-2222-222222222222', false),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '22222222-2222-2222-2222-222222222222', true),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '88888888-8888-8888-8888-888888888888', true),
   ('cccccccc-cccc-cccc-cccc-cccccccccccc', '22222222-2222-2222-2222-222222222222', true),
@@ -89,7 +88,9 @@ select is(public.get_business_date_for_instant('22222222-2222-2222-2222-22222222
 select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-13 03:00:01+00'::timestamptz), '2026-08-13'::date, 'after 05:00 Europe/Prague remains on the current service day');
 select is(public.get_business_date_for_instant('22222222-2222-2222-2222-222222222222', '2026-08-13 09:00:00+00'::timestamptz), '2026-08-13'::date, 'database cutoff converts UTC using the location timezone');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 0, 'unauthorized employee cannot read revenue');
+select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.locations where restaurant_id = '11111111-1111-1111-1111-111111111111'), 1, 'assigned employee can list the assigned location');
+select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
 select throws_ok(
   $$select * from public.submit_revenue_entry('22222222-2222-2222-2222-222222222222', public.get_current_business_date('22222222-2222-2222-2222-222222222222'), 10000, 5000, 5000, 0, 0, 5000, null)$$,
   'P0001', null, 'unauthorized employee cannot submit revenue'
@@ -125,7 +126,7 @@ select is((select previous_values->>'total_revenue_czk_minor' from public.revenu
 
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 select ok((select count(*) = 1 from public.start_shift('22222222-2222-2222-2222-222222222222')), 'assigned employee can start a shift');
-select ok((select started_at <= now() and started_at > now() - interval '1 minute'
+select ok((select started_at <= clock_timestamp() and started_at > clock_timestamp() - interval '1 minute'
   from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb' and ended_at is null), 'shift start timestamp comes from the database clock');
 select is((select count(*)::int from public.shifts where membership_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'), 1, 'employee can read own shift');
 select throws_ok(
