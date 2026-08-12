@@ -1,0 +1,14 @@
+{
+  "name": "kafka-restaurant-platform",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "npm run dev -w @kafka/web",
+    "build": "npm run build -w @kafka/web",
+    "lint": "npm run lint -w @kafka/web",
+    "test": "npm run test -w @kafka/web",
+    "typecheck": "npm run typecheck -w @kafka/web"
+  },
+  "workspaces": ["web"],
+  "engines": { "node": ">=22.0.0" }
+}
