@@ -177,13 +177,21 @@ select is((select status from public.invoice_records where id = '12121212-1212-1
 select is((select supplier_name from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212' order by version desc limit 1), null, 'empty adapter draft remains empty until human review');
 select is((select count(*)::int from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice record');
 select is((select count(*)::int from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice draft');
-select throws_ok(
-  $$update storage.objects set metadata = jsonb_set(metadata, '{size}', '2000'::jsonb) where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'$$,
-  '42501', null, 'employee cannot update invoice storage objects'
+select is(
+  (with changed as (
+    update storage.objects set metadata = jsonb_set(metadata, '{size}', '2000'::jsonb)
+    where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'
+    returning 1
+  ) select count(*)::int from changed),
+  0, 'employee cannot update invoice storage objects'
 );
-select throws_ok(
-  $$delete from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'$$,
-  '42501', null, 'employee cannot delete invoice storage objects'
+select is(
+  (with deleted as (
+    delete from storage.objects
+    where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'
+    returning 1
+  ) select count(*)::int from deleted),
+  0, 'employee cannot delete invoice storage objects'
 );
 select throws_ok(
   $$update public.invoice_records set original_filename = 'tampered.pdf' where id = '12121212-1212-1212-1212-121212121212'$$,
