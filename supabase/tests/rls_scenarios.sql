@@ -1,6 +1,6 @@
 begin;
 
-select plan(105);
+select plan(106);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -147,11 +147,21 @@ select throws_ok(
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'image/png', 'size', 1000))$$,
   '42501', null, 'uploader cannot insert the exact path with wrong MIME metadata'
 );
-select throws_ok(
+select lives_ok(
   $$insert into storage.objects (bucket_id, name, owner_id, metadata)
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 2000))$$,
-  '42501', null, 'uploader cannot insert the exact path with wrong size metadata'
+  'uploader can insert the exact path before database-side size confirmation'
 );
+select throws_ok(
+  $$select * from public.mark_invoice_uploaded('12121212-1212-1212-1212-121212121212')$$,
+  'P0001', null, 'invoice with wrong storage size cannot enter human review'
+);
+set role service_role;
+delete from storage.objects
+where bucket_id = 'invoice-originals'
+  and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
+set role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 select lives_ok(
   $$insert into storage.objects (bucket_id, name, owner_id, metadata)
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
