@@ -45,6 +45,16 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .module-nav { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 5px; background: #e5e1d8; border-radius: 17px; margin-bottom: 22px; }
 .module-nav button { min-height: 42px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 900; }
 .module-nav button.active { background: var(--ink); color: white; }
+.module-nav-three { grid-template-columns: repeat(3, 1fr); }
+.file-btn { display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.invoice-row { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; border-top: 1px solid var(--line); background: transparent; padding: 16px 0; text-align: left; }
+.invoice-row:first-of-type { border-top: 0; }
+.invoice-row span { display: grid; gap: 5px; min-width: 0; }
+.invoice-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invoice-row small, .invoice-row em { color: var(--muted); font-size: 12px; font-style: normal; }
+.invoice-row.selected { color: var(--ink); }
+.input-wrap select { width: 100%; border: 0; outline: 0; background: transparent; padding: 0 16px; min-height: 60px; font-weight: 800; }
 .status-card h2 { margin-top: 10px; }
 .total-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .metric { border: 1px solid var(--line); border-radius: 17px; padding: 15px; display: grid; gap: 5px; }

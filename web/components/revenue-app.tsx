@@ -64,7 +64,7 @@ function Summary({ draft }: { draft: Draft }) {
   return <div className="sum">{FIELDS.map(([key, label, currency]) => <><span key={`${key}-label`}>{label}</span><strong key={`${key}-value`}>{draft[key] ? formatMinorUnits(parseMoneyToMinorUnits(draft[key], currency), currency) : "—"}</strong></>)}</div>;
 }
 
-export function RevenueApp({ onOpenShifts }: { onOpenShifts?: () => void }) {
+export function RevenueApp({ onOpenShifts, onOpenInvoices }: { onOpenShifts?: () => void; onOpenInvoices?: () => void }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -130,7 +130,7 @@ export function RevenueApp({ onOpenShifts }: { onOpenShifts?: () => void }) {
   if (!userId) return <AuthCard onReady={() => { void loadWorkspace(); }} />;
   if (loading) return <main className="app-shell"><div className="kicker">KAFKA</div><h1>Today</h1><p className="muted">Loading the service day…</p></main>;
   const submitted = Boolean(entry);
-  return <main className="app-shell">{onOpenShifts && <div className="module-nav"><button className="active">Revenue</button><button onClick={onOpenShifts}>Shifts</button></div>}<header className="top"><div><div className="kicker">KAFKA</div><h1>{view === "today" ? "Today" : "History"}</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
+  return <main className="app-shell">{onOpenShifts && <div className={`module-nav ${onOpenInvoices ? "module-nav-three" : ""}`}><button className="active">Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}<button onClick={onOpenShifts}>Shifts</button></div>}<header className="top"><div><div className="kicker">KAFKA</div><h1>{view === "today" ? "Today" : "History"}</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     {location && <p className="muted">{location.name} · {businessDate || businessDateForTimezone(new Date(), location.timezone)}</p>}
     <div className={`banner ${typeof navigator !== "undefined" && !navigator.onLine ? "offline" : ""}`}>{typeof navigator !== "undefined" && !navigator.onLine ? "● Offline · financial submission unavailable" : "● Connected · saved to the shared database"}</div>
     {error && <p className="error" role="alert">{error}</p>}
