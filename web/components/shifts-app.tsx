@@ -5,7 +5,7 @@ import { elapsedMinutesSince, formatDuration, formatShiftDate, formatShiftTime, 
 import { getSupabaseBrowserClient } from "../lib/supabase";
 import type { Location } from "../lib/types";
 
-type ShiftsAppProps = { onOpenRevenue: () => void };
+type ShiftsAppProps = { onOpenRevenue: () => void; onOpenInvoices?: () => void };
 type Member = { id: string; user_id: string; role: string; display_name: string };
 type CorrectionDraft = { startedAt: string; endedAt: string; reason: string };
 
@@ -26,7 +26,7 @@ function PeriodTotals({ shifts, businessDate }: { shifts: Shift[]; businessDate:
   return <div className="total-grid"><div className="metric"><span>This week</span><strong>{formatDuration(week.minutes)}</strong><small>{week.count} completed shift{week.count === 1 ? "" : "s"}</small></div><div className="metric"><span>This month</span><strong>{formatDuration(month.minutes)}</strong><small>{month.count} completed shift{month.count === 1 ? "" : "s"}</small></div></div>;
 }
 
-export function ShiftsApp({ onOpenRevenue }: ShiftsAppProps) {
+export function ShiftsApp({ onOpenRevenue, onOpenInvoices }: ShiftsAppProps) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -111,7 +111,7 @@ export function ShiftsApp({ onOpenRevenue }: ShiftsAppProps) {
   const membersWithShifts = members.filter((member) => shifts.some((shift) => shift.membership_id === member.id));
 
   return <main className="app-shell">
-    <div className="module-nav"><button onClick={onOpenRevenue}>Revenue</button><button className="active">Shifts</button></div>
+    <div className={`module-nav ${onOpenInvoices ? "module-nav-three" : ""}`}><button onClick={onOpenRevenue}>Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}<button className="active">Shifts</button></div>
     <header className="top"><div><div className="kicker">KAFKA</div><h1>Shifts</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     <p className="muted">{location.name} · service day {businessDate}</p>
     <div className="banner">● Connected · clock times come from the database</div>

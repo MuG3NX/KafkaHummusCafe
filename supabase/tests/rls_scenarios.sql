@@ -1,6 +1,6 @@
 begin;
 
-select plan(48);
+select plan(66);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -114,12 +114,56 @@ select throws_ok(
   '42501', null, 'normal submitter cannot delete revenue directly'
 );
 
+select throws_ok(
+  $$insert into public.invoice_records (id, restaurant_id, location_id, uploaded_by, storage_path, original_filename, original_mime_type, original_size_bytes)
+    values ('12121212-1212-1212-1212-121212121212', '11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', auth.uid(),
+      '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', 'invoice.pdf', 'application/pdf', 1000)$$,
+  '42501', null, 'employee cannot insert invoice records directly'
+);
+select ok((select count(*) = 1 from public.create_invoice_record(
+  '12121212-1212-1212-1212-121212121212',
+  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf',
+  'invoice.pdf', 'application/pdf', 1000
+)), 'authorized employee can create an invoice record');
+select ok((select count(*) = 1 from public.mark_invoice_uploaded('12121212-1212-1212-1212-121212121212')), 'uploader can mark an invoice ready for review');
+select ok((select count(*) = 1 from public.save_invoice_extraction_draft(
+  '12121212-1212-1212-1212-121212121212', 'adapter', 'none', 'Test supplier', 'INV-001', current_date, current_date + 14,
+  'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, null
+)), 'authorized employee can save an extraction draft');
+select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'needs_review', 'invoice enters human review state');
+select is((select supplier_name from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212' order by version desc limit 1), 'Test supplier', 'invoice draft stores extracted supplier');
+select is((select count(*)::int from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice record');
+select is((select count(*)::int from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice draft');
+select throws_ok(
+  $$update public.invoice_records set original_filename = 'tampered.pdf' where id = '12121212-1212-1212-1212-121212121212'$$,
+  '42501', null, 'employee cannot update invoice records directly'
+);
+select throws_ok(
+  $$delete from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'$$,
+  '42501', null, 'employee cannot delete invoice records directly'
+);
+select throws_ok(
+  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 'employee approval attempt')$$,
+  'P0001', null, 'employee cannot approve invoices'
+);
+
 select set_config('request.jwt.claims', json_build_object('sub', '55555555-5555-5555-5555-555555555555', 'role', 'authenticated')::text, true);
 select ok(public.can_access_location('22222222-2222-2222-2222-222222222222') and public.can_access_location('88888888-8888-8888-8888-888888888888'), 'one membership can be assigned to multiple locations');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222' and business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222')), 1, 'authorized second submitter sees shared current-day status');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222' and business_date = current_date - 1), 0, 'authorized submitter cannot read arbitrary financial history');
 
 select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
+select is((select count(*)::int from public.invoice_audit_events where invoice_id = '12121212-1212-1212-1212-121212121212'), 3, 'owner can read invoice creation/upload/draft audit');
+select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 'reviewed by owner')), 'owner can approve an invoice draft');
+select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'approved', 'approval changes invoice status');
+select ok((select count(*) = 1 from public.save_invoice_extraction_draft(
+  '12121212-1212-1212-1212-121212121212', 'manual', null, 'Corrected supplier', 'INV-001', current_date, current_date + 14,
+  'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, 'supplier name corrected'
+)), 'owner can save an audited correction to an approved invoice');
+select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'needs_review', 'invoice correction returns it to review');
+select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 're-reviewed by owner')), 'owner can re-approve a corrected invoice');
+select is((select count(*)::int from public.invoice_audit_events where invoice_id = '12121212-1212-1212-1212-121212121212'), 6, 'invoice audit remains append-only across approval and correction');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 2, 'owner can read location history');
 select ok((select count(*) = 1 from public.correct_revenue_entry((select id from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222' and business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222')), 126000, 80000, 46000, 1200, 350, 44800, 'corrected closing note', 'cash count corrected')), 'owner correction succeeds');
 select is((select count(*)::int from public.revenue_revisions where revenue_entry_id = (select id from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222' and business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222'))), 1, 'owner correction creates one revision');
