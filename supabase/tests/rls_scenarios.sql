@@ -205,7 +205,9 @@ select ok((select count(*) = 1 from public.create_invoice_record(
 )), 'employee can create a second upload record for abandonment testing');
 select ok((select count(*) = 1 from public.abandon_invoice_upload('13131313-1313-1313-1313-131313131313', 'network failure')), 'employee can abandon an incomplete upload');
 select is((select status from public.invoice_records where id = '13131313-1313-1313-1313-131313131313'), 'abandoned', 'abandoned upload is terminal');
+select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select is((select event_type from public.invoice_audit_events where invoice_id = '13131313-1313-1313-1313-131313131313' order by version desc limit 1), 'abandoned', 'abandonment has a distinct audit event');
+select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 do $$ begin
   update storage.objects set metadata = jsonb_set(metadata, '{size}', '2000'::jsonb)
   where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
@@ -271,7 +273,7 @@ select ok((select count(*) = 1 from public.save_invoice_manual_draft(
 )), 'owner can save an audited correction to an approved invoice');
 select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'needs_review', 'invoice correction returns it to review');
 select is((select approved_draft_version from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), null, 'invoice correction clears the approved draft pointer');
-set role service_role;
+set role postgres;
 select throws_ok(
   $$update public.invoice_records set status = 'approved', approved_draft_version = null where id = '12121212-1212-1212-1212-121212121212'$$,
   '23514', null, 'database rejects approved invoice without its draft pointer'
