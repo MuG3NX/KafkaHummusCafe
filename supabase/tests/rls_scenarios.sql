@@ -1,6 +1,6 @@
 begin;
 
-select plan(99);
+select plan(79);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
