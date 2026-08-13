@@ -1,6 +1,6 @@
 begin;
 
-select plan(79);
+select plan(94);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -135,22 +135,30 @@ select throws_ok(
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/orphan/orphan.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
   '42501', null, 'employee cannot insert an orphan invoice object'
 );
+select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
+    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
+  '42501', null, 'unassigned employee cannot insert the exact invoice object'
+);
+select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
+    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'image/png', 'size', 1000))$$,
+  '42501', null, 'uploader cannot insert the exact path with wrong MIME metadata'
+);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
+    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 2000))$$,
+  '42501', null, 'uploader cannot insert the exact path with wrong size metadata'
+);
 select lives_ok(
   $$insert into storage.objects (bucket_id, name, owner_id, metadata)
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
   'uploader can insert the exact invoice object'
 );
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
-    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice-wrong.pdf', auth.uid(), jsonb_build_object('mimetype', 'image/png', 'size', 1000))$$,
-  '42501', null, 'uploader cannot insert an object with mismatched metadata'
-);
 select set_config('request.jwt.claims', json_build_object('sub', '33333333-3333-3333-3333-333333333333', 'role', 'authenticated')::text, true);
-select throws_ok(
-  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
-    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice-employee.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
-  '42501', null, 'unassigned employee cannot insert an invoice object'
-);
+select is((select count(*)::int from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'), 0, 'unassigned employee cannot read the exact private original');
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'), 1, 'uploader can read the exact private original');
 select ok((select count(*) = 1 from public.mark_invoice_uploaded('12121212-1212-1212-1212-121212121212')), 'uploader can mark an invoice ready after exact object upload');
@@ -171,12 +179,33 @@ select ok((select count(*) = 1 from public.save_invoice_adapter_draft(
   '12121212-1212-1212-1212-121212121212', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
   'CZK', null, null, null, '{}'::jsonb, '["No OCR provider configured"]'::jsonb
 )), 'trusted server adapter can create an explicitly untrusted draft');
+select throws_ok(
+  $$select * from public.save_invoice_adapter_draft(
+    '13131313-1313-1313-1313-131313131313', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
+    'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
+  'P0001', null, 'trusted adapter cannot create a draft for an abandoned invoice'
+);
 set role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
 select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'needs_review', 'invoice enters human review state');
 select is((select supplier_name from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212' order by version desc limit 1), null, 'empty adapter draft remains empty until human review');
 select is((select count(*)::int from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice record');
 select is((select count(*)::int from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212'), 1, 'uploader can read own invoice draft');
+select throws_ok(
+  $$select * from public.save_invoice_manual_draft(
+    '12121212-1212-1212-1212-121212121212', 'Employee supplier', 'INV-EMP', current_date, null,
+    'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, null)$$,
+  'P0001', null, 'location employee cannot save a manual draft'
+);
+select ok((select count(*) = 1 from public.create_invoice_record(
+  '13131313-1313-1313-1313-131313131313',
+  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-2222-2222-222222222222/13131313-1313-1313-1313-131313131313/failed.pdf',
+  'failed.pdf', 'application/pdf', 1000
+)), 'employee can create a second upload record for abandonment testing');
+select ok((select count(*) = 1 from public.abandon_invoice_upload('13131313-1313-1313-1313-131313131313', 'network failure')), 'employee can abandon an incomplete upload');
+select is((select status from public.invoice_records where id = '13131313-1313-1313-1313-131313131313'), 'abandoned', 'abandoned upload is terminal');
+select is((select event_type from public.invoice_audit_events where invoice_id = '13131313-1313-1313-1313-131313131313' order by version desc limit 1), 'abandoned', 'abandonment has a distinct audit event');
 do $$ begin
   update storage.objects set metadata = jsonb_set(metadata, '{size}', '2000'::jsonb)
   where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
@@ -195,7 +224,7 @@ select throws_ok(
   '42501', null, 'employee cannot delete invoice records directly'
 );
 select throws_ok(
-  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 'employee approval attempt')$$,
+  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 3, 3, 'employee approval attempt')$$,
   'P0001', null, 'employee cannot approve invoices'
 );
 
@@ -207,22 +236,49 @@ select is((select count(*)::int from public.revenue_entries where location_id = 
 select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.invoice_audit_events where invoice_id = '12121212-1212-1212-1212-121212121212'), 3, 'owner can read invoice creation/upload/draft audit');
 select throws_ok(
-  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 'blank draft')$$,
+  $$select * from public.approve_invoice('13131313-1313-1313-1313-131313131313', 1, 2, 'abandoned approval')$$,
+  'P0001', null, 'abandoned invoice cannot be approved'
+);
+select throws_ok(
+  $$select * from public.reject_invoice('13131313-1313-1313-1313-131313131313', 'abandoned rejection')$$,
+  'P0001', null, 'abandoned invoice cannot be rejected into review'
+);
+select throws_ok(
+  $$select * from public.save_invoice_manual_draft(
+    '13131313-1313-1313-1313-131313131313', 'Abandoned supplier', 'INV-ABANDONED', current_date, null,
+    'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, null)$$,
+  'P0001', null, 'abandoned invoice cannot receive a manual draft'
+);
+select throws_ok(
+  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 3, 3, 'blank draft')$$,
   'P0001', null, 'owner cannot approve a blank adapter draft'
 );
 select ok((select count(*) = 1 from public.save_invoice_manual_draft(
   '12121212-1212-1212-1212-121212121212', 'Test supplier', 'INV-001', current_date, current_date + 14,
   'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, null
 )), 'owner can save the human-reviewed invoice draft');
-select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 'reviewed by owner')), 'owner can approve a valid invoice draft');
+select throws_ok(
+  $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 3, 4, 'stale draft')$$,
+  'P0001', null, 'owner cannot approve a stale reviewed draft version'
+);
+select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 4, 4, 'reviewed by owner')), 'owner can approve the exact current draft version');
 select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'approved', 'approval changes invoice status');
 select is((select approved_draft_version from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), (select max(version) from public.invoice_extraction_drafts where invoice_id = '12121212-1212-1212-1212-121212121212'), 'approval points to the exact approved draft version');
+select ok((select status = 'approved' and approved_draft_version is not null from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'approved status always has an approved draft pointer');
 select ok((select count(*) = 1 from public.save_invoice_manual_draft(
   '12121212-1212-1212-1212-121212121212', 'Corrected supplier', 'INV-001', current_date, current_date + 14,
   'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, 'supplier name corrected'
 )), 'owner can save an audited correction to an approved invoice');
 select is((select status from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), 'needs_review', 'invoice correction returns it to review');
-select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 're-reviewed by owner')), 'owner can re-approve a corrected invoice');
+select is((select approved_draft_version from public.invoice_records where id = '12121212-1212-1212-1212-121212121212'), null, 'invoice correction clears the approved draft pointer');
+set role service_role;
+select throws_ok(
+  $$update public.invoice_records set status = 'approved', approved_draft_version = null where id = '12121212-1212-1212-1212-121212121212'$$,
+  '23514', null, 'database rejects approved invoice without its draft pointer'
+);
+set role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
+select ok((select count(*) = 1 from public.approve_invoice('12121212-1212-1212-1212-121212121212', 6, 6, 're-reviewed by owner')), 'owner can re-approve a corrected invoice');
 select is((select count(*)::int from public.invoice_audit_events where invoice_id = '12121212-1212-1212-1212-121212121212'), 7, 'invoice audit remains append-only across approval and correction');
 select is((select count(*)::int from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222'), 2, 'owner can read location history');
 select ok((select count(*) = 1 from public.correct_revenue_entry((select id from public.revenue_entries where location_id = '22222222-2222-2222-2222-222222222222' and business_date = public.get_current_business_date('22222222-2222-2222-2222-222222222222')), 126000, 80000, 46000, 1200, 350, 44800, 'corrected closing note', 'cash count corrected')), 'owner correction succeeds');

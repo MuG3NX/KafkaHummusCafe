@@ -6,8 +6,6 @@ alter table public.invoice_records
   foreign key (id, approved_draft_version)
   references public.invoice_extraction_drafts (invoice_id, version);
 
-revoke update, delete on storage.objects from anon, authenticated;
-
 create or replace function public.invoice_storage_metadata_size(p_metadata jsonb)
 returns bigint
 language plpgsql

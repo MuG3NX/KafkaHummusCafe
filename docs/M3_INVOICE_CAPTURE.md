@@ -20,7 +20,8 @@ Included:
 - mobile camera/file upload for invoice originals;
 - private Supabase Storage for the original image or PDF;
 - an invoice record tied to restaurant and location;
-- lifecycle status for uploaded, reviewable, approved, and rejected records;
+- lifecycle status for uploading, reviewable, approved, rejected, and terminal
+  abandoned records;
 - a versioned extracted-data draft containing supplier, invoice number, issue
   date, due date, currency, net, VAT, gross, and confidence/validation metadata;
 - explicit human review and approval;
@@ -48,8 +49,10 @@ hard-delete original objects.
 The upload policy binds an object to the exact `uploading` invoice record,
 uploader, path, MIME type, and byte size. The completion RPC refuses to advance
 the record unless that exact private object exists. A failed pre-completion
-upload is abandoned with an audit event; the user can retry by selecting the
-file again.
+upload remains recoverable online: the user can retry completion when the
+object exists, or abandon it with a distinct audit event. Abandonment is
+terminal; retrying after abandonment starts a new upload and does not delete
+the original object.
 
 Invoice draft money is stored as integer minor units with an explicit currency.
 The browser may format values for display, but must not use JavaScript floating
@@ -73,9 +76,11 @@ future costs/reporting module may consume the extracted fields.
 - OCR output is untrusted until an owner explicitly approves it.
 
 Approval validates the stored draft fields in the database and records the exact
-approved extraction version on the invoice row. Client-provided validation
-errors are informational only. Corrections clear that pointer until a new
-version is approved.
+reviewed extraction version on the invoice row. The caller must submit the
+loaded invoice version and draft version; stale approvals are rejected.
+Client-provided validation errors are informational only. Corrections clear
+that pointer until a new version is approved. The database enforces that an
+approved invoice always has a pointer, and every other status has none.
 
 ## Adapter boundary
 
