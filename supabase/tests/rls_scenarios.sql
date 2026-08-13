@@ -182,11 +182,10 @@ do $$ begin
   where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
 end $$;
 select is((select metadata ->> 'size' from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'), '1000', 'employee cannot update invoice storage objects');
-do $$ begin
-  delete from storage.objects
-  where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
-end $$;
-select is((select count(*)::int from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'), 1, 'employee cannot delete invoice storage objects');
+select throws_ok(
+  $$delete from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'$$,
+  'P0001', null, 'employee cannot delete invoice storage objects'
+);
 select throws_ok(
   $$update public.invoice_records set original_filename = 'tampered.pdf' where id = '12121212-1212-1212-1212-121212121212'$$,
   '42501', null, 'employee cannot update invoice records directly'
