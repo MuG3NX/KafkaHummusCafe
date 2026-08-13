@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { noProviderInvoiceAdapter, type InvoiceExtractionDraft } from "../lib/invoice-extraction";
+import type { InvoiceExtractionDraft } from "../lib/invoice-extraction";
 import { parseMoneyToMinorUnits } from "../lib/money";
 import { getSupabaseBrowserClient } from "../lib/supabase";
 import type { Location } from "../lib/types";
@@ -14,6 +14,7 @@ type InvoiceRecord = {
   original_mime_type: string;
   original_size_bytes: number;
   status: "uploading" | "needs_review" | "approved" | "rejected";
+  approved_draft_version: number | null;
   version: number;
   created_at: string;
   updated_at: string;
@@ -110,7 +111,7 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     if (locationResult.error || !locationResult.data) { setError(locationResult.error?.message ?? "No restaurant location is configured."); setLoading(false); return; }
     const currentLocation = locationResult.data as Location;
     setLocation(currentLocation);
-    const invoiceResult = await supabase.from("invoice_records").select("id, location_id, storage_path, original_filename, original_mime_type, original_size_bytes, status, version, created_at, updated_at").eq("location_id", currentLocation.id).order("created_at", { ascending: false });
+    const invoiceResult = await supabase.from("invoice_records").select("id, location_id, storage_path, original_filename, original_mime_type, original_size_bytes, status, approved_draft_version, version, created_at, updated_at").eq("location_id", currentLocation.id).order("created_at", { ascending: false });
     if (invoiceResult.error) { setError(invoiceResult.error.message); setLoading(false); return; }
     const invoiceRows = (invoiceResult.data ?? []) as InvoiceRecord[];
     setInvoices(invoiceRows);
@@ -146,35 +147,38 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     setBusy(true); setError("");
     const invoiceId = crypto.randomUUID();
     const path = `${location.id}/${invoiceId}/${safeFileName(file.name)}`;
+    let recordCreated = false;
+    let uploadComplete = false;
     try {
       const created = await supabase.rpc("create_invoice_record", { p_invoice_id: invoiceId, p_location_id: location.id, p_storage_path: path, p_original_filename: file.name, p_original_mime_type: file.type, p_original_size_bytes: file.size });
       if (created.error) throw created.error;
+      recordCreated = true;
       const uploaded = await supabase.storage.from("invoice-originals").upload(path, file, { upsert: false, contentType: file.type });
       if (uploaded.error) throw uploaded.error;
       const marked = await supabase.rpc("mark_invoice_uploaded", { p_invoice_id: invoiceId });
       if (marked.error) throw marked.error;
-      const adapterDraft = await noProviderInvoiceAdapter.extract({ fileName: file.name, mimeType: file.type });
-      const saved = await supabase.rpc("save_invoice_extraction_draft", {
-        p_invoice_id: invoiceId, p_source: "adapter", p_provider_key: noProviderInvoiceAdapter.key,
-        p_supplier_name: adapterDraft.supplierName || null, p_invoice_number: adapterDraft.invoiceNumber || null,
-        p_issue_date: adapterDraft.issueDate || null, p_due_date: adapterDraft.dueDate || null,
-        p_currency: adapterDraft.currency, p_net_minor: adapterDraft.netMinor || null, p_vat_minor: adapterDraft.vatMinor || null,
-        p_gross_minor: adapterDraft.grossMinor || null, p_confidence: adapterDraft.confidence, p_validation_errors: adapterDraft.validationErrors, p_reason: null
-      });
-      if (saved.error) throw saved.error;
+      uploadComplete = true;
+      const extracted = await fetch(`/api/invoices/${invoiceId}/extract`, { method: "POST" });
+      if (!extracted.ok) setError("Original saved. OCR is not configured yet; the owner can enter the review draft manually.");
       await loadWorkspace();
-      const freshInvoice = { id: invoiceId, location_id: location.id, storage_path: path, original_filename: file.name, original_mime_type: file.type, original_size_bytes: file.size, status: "needs_review" as const, version: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+      const freshInvoice = { id: invoiceId, location_id: location.id, storage_path: path, original_filename: file.name, original_mime_type: file.type, original_size_bytes: file.size, status: "needs_review" as const, approved_draft_version: null, version: 3, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
       await openInvoice(freshInvoice);
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Invoice upload could not be saved."); }
+    } catch (caught) {
+      if (recordCreated && !uploadComplete) {
+        await supabase.rpc("abandon_invoice_upload", { p_invoice_id: invoiceId, p_reason: "Storage upload failed; upload can be retried." });
+      }
+      setError(caught instanceof Error ? caught.message : "Invoice upload could not be saved. Choose the file again to retry.");
+      await loadWorkspace();
+    }
     setBusy(false);
   }
 
   async function saveDraft() {
-    if (!supabase || !selected) return;
+    if (!supabase || !selected || !owner) return;
     setBusy(true); setError("");
     try {
-      const result = await supabase.rpc("save_invoice_extraction_draft", {
-        p_invoice_id: selected.id, p_source: "manual", p_provider_key: null,
+      const result = await supabase.rpc("save_invoice_manual_draft", {
+        p_invoice_id: selected.id,
         p_supplier_name: draft.supplierName || null, p_invoice_number: draft.invoiceNumber || null,
         p_issue_date: draft.issueDate || null, p_due_date: draft.dueDate || null, p_currency: draft.currency,
         p_net_minor: optionalMinor(draft.net, draft.currency), p_vat_minor: optionalMinor(draft.vat, draft.currency), p_gross_minor: optionalMinor(draft.gross, draft.currency),
@@ -216,14 +220,14 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     <section className="card"><div className="kicker">CAPTURE</div><h2>Original invoice</h2><p className="sub">Take a photo or choose a PDF. The original is stored separately from extracted fields.</p><label className="btn file-btn">{busy ? "Saving…" : "Choose invoice photo/PDF"}<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={busy} onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ""; if (file) void uploadInvoice(file); }} /></label></section>
     <section className="card"><div className="kicker">INVOICE QUEUE</div><h2>{invoices.length} captured</h2>{invoices.length === 0 ? <p className="muted">No invoices captured yet.</p> : invoices.map((invoice) => <button className={`invoice-row ${selected?.id === invoice.id ? "selected" : ""}`} key={invoice.id} onClick={() => void openInvoice(invoice)}><span><strong>{invoice.original_filename}</strong><small>{new Date(invoice.created_at).toLocaleDateString()}</small></span><em>{statusLabel(invoice.status)}</em></button>)}</section>
     {selected && <section className="card"><div className="kicker">HUMAN REVIEW</div><h2>{selected.original_filename}</h2><p className="sub">Status: {statusLabel(selected.status)} · version {selected.version}</p>{selectedUrl && <a className="btn secondary" href={selectedUrl} target="_blank" rel="noreferrer">Open private original</a>}<p className="fine">No OCR provider is connected. Enter or correct the draft fields below; approval is owner-only.</p>
-      <label className="field"><span>Supplier</span><div className="input-wrap"><input value={draft.supplierName} onChange={(event) => setDraft((current) => ({ ...current, supplierName: event.target.value }))} /></div></label>
-      <label className="field"><span>Invoice number</span><div className="input-wrap"><input value={draft.invoiceNumber} onChange={(event) => setDraft((current) => ({ ...current, invoiceNumber: event.target.value }))} /></div></label>
-      <label className="field"><span>Issue date</span><div className="input-wrap"><input type="date" value={draft.issueDate} onChange={(event) => setDraft((current) => ({ ...current, issueDate: event.target.value }))} /></div></label>
-      <label className="field"><span>Due date</span><div className="input-wrap"><input type="date" value={draft.dueDate} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} /></div></label>
-      <label className="field"><span>Currency</span><div className="input-wrap"><select value={draft.currency} onChange={(event) => setDraft((current) => ({ ...current, currency: event.target.value as "CZK" | "EUR" }))}><option value="CZK">CZK</option><option value="EUR">EUR</option></select></div></label>
-      {(["net", "vat", "gross"] as const).map((key) => <label className="field" key={key}><span>{key === "net" ? "Net" : key === "vat" ? "VAT" : "Gross"}</span><div className="input-wrap"><input inputMode="decimal" placeholder="0" value={draft[key]} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} /><b>{draft.currency}</b></div></label>)}
-      {(owner || selected.status !== "approved") && <label className="field"><span>{selected.status === "approved" ? "Correction reason (required)" : "Review note"}</span><textarea value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value }))} /></label>}
-      <button className="btn" disabled={busy || (selected.status === "approved" && !draft.reason.trim())} onClick={() => void saveDraft()}>{busy ? "Saving…" : selected.status === "approved" ? "Save audited correction" : "Save draft"}</button>
+      <label className="field"><span>Supplier</span><div className="input-wrap"><input disabled={!owner} value={draft.supplierName} onChange={(event) => setDraft((current) => ({ ...current, supplierName: event.target.value }))} /></div></label>
+      <label className="field"><span>Invoice number</span><div className="input-wrap"><input disabled={!owner} value={draft.invoiceNumber} onChange={(event) => setDraft((current) => ({ ...current, invoiceNumber: event.target.value }))} /></div></label>
+      <label className="field"><span>Issue date</span><div className="input-wrap"><input disabled={!owner} type="date" value={draft.issueDate} onChange={(event) => setDraft((current) => ({ ...current, issueDate: event.target.value }))} /></div></label>
+      <label className="field"><span>Due date</span><div className="input-wrap"><input disabled={!owner} type="date" value={draft.dueDate} onChange={(event) => setDraft((current) => ({ ...current, dueDate: event.target.value }))} /></div></label>
+      <label className="field"><span>Currency</span><div className="input-wrap"><select disabled={!owner} value={draft.currency} onChange={(event) => setDraft((current) => ({ ...current, currency: event.target.value as "CZK" | "EUR" }))}><option value="CZK">CZK</option><option value="EUR">EUR</option></select></div></label>
+      {(["net", "vat", "gross"] as const).map((key) => <label className="field" key={key}><span>{key === "net" ? "Net" : key === "vat" ? "VAT" : "Gross"}</span><div className="input-wrap"><input disabled={!owner} inputMode="decimal" placeholder="0" value={draft[key]} onChange={(event) => setDraft((current) => ({ ...current, [key]: event.target.value }))} /><b>{draft.currency}</b></div></label>)}
+      {owner && <label className="field"><span>{selected.status === "approved" ? "Correction reason (required)" : "Review note"}</span><textarea value={draft.reason} onChange={(event) => setDraft((current) => ({ ...current, reason: event.target.value }))} /></label>}
+      {owner && <button className="btn" disabled={busy || (selected.status === "approved" && !draft.reason.trim())} onClick={() => void saveDraft()}>{busy ? "Saving…" : selected.status === "approved" ? "Save audited correction" : "Save draft"}</button>}
       {owner && selected.status === "needs_review" && <><button className="btn" disabled={busy} onClick={() => void approveInvoice()}>Approve for future reporting</button><button className="btn secondary" disabled={busy || !draft.reason.trim()} onClick={() => void rejectInvoice()}>Reject with reason</button></>}
     </section>}
   </main>;

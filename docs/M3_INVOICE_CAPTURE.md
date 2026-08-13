@@ -45,6 +45,12 @@ stores its bucket/path and metadata, but never treats a client-provided filename
 or extracted value as authoritative. Normal app paths do not overwrite or
 hard-delete original objects.
 
+The upload policy binds an object to the exact `uploading` invoice record,
+uploader, path, MIME type, and byte size. The completion RPC refuses to advance
+the record unless that exact private object exists. A failed pre-completion
+upload is abandoned with an audit event; the user can retry by selecting the
+file again.
+
 Invoice draft money is stored as integer minor units with an explicit currency.
 The browser may format values for display, but must not use JavaScript floating
 point as the stored or authorization value.
@@ -60,16 +66,25 @@ future costs/reporting module may consume the extracted fields.
 - A user may create and read invoice records for locations they can access.
 - Original Storage objects are readable only through authorized location access.
 - Owners may approve, reject, and correct records for their locations.
+- Employees may capture and read their location's invoices, while manual field
+  editing and approval are owner-only.
 - Direct client mutation of approved financial meaning is denied; privileged
   transitions use database-side authorization.
 - OCR output is untrusted until an owner explicitly approves it.
 
+Approval validates the stored draft fields in the database and records the exact
+approved extraction version on the invoice row. Client-provided validation
+errors are informational only. Corrections clear that pointer until a new
+version is approved.
+
 ## Adapter boundary
 
-The domain depends on an internal extraction interface, not on a vendor SDK.
-The first implementation may return an empty or deterministic draft so upload,
-review, authorization, and audit behavior can be tested without external OCR.
-A later provider adapter must map into the same draft contract and must not gain
+The domain depends on a server-only internal extraction interface, not on a
+vendor SDK. The browser sends an invoice identity to a server route; the server
+resolves the private original and owns the provider key/source fields. The first
+implementation may return an empty or deterministic draft so upload, review,
+authorization, and audit behavior can be tested without external OCR. A later
+provider adapter must map into the same draft contract and must not gain
 permission to approve invoices or write accounting truth.
 
 ## Definition of done for the foundation PR
