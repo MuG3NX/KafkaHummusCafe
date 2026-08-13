@@ -360,6 +360,7 @@ revoke execute on function public.reject_invoice(uuid, text) from public, anon, 
 revoke execute on function public.abandon_invoice_upload(uuid, text) from public, anon, authenticated;
 
 grant execute on function public.mark_invoice_uploaded(uuid) to authenticated;
+grant execute on function public.invoice_storage_metadata_size(jsonb) to authenticated;
 grant execute on function public.save_invoice_manual_draft(uuid, text, text, date, date, text, bigint, bigint, bigint, jsonb, jsonb, text) to authenticated;
 grant execute on function public.approve_invoice(uuid, text) to authenticated;
 grant execute on function public.reject_invoice(uuid, text) to authenticated;
