@@ -74,6 +74,10 @@ future costs/reporting module may consume the extracted fields.
 - Direct client mutation of approved financial meaning is denied; privileged
   transitions use database-side authorization.
 - OCR output is untrusted until an owner explicitly approves it.
+- Initial automatic extraction is restricted to the original uploader or a
+  location owner, only once for a reviewable invoice with no existing draft.
+  Rejected, approved, abandoned, and already-drafted invoices are not
+  re-extracted in this foundation slice.
 
 Approval validates the stored draft fields in the database and records the exact
 reviewed extraction version on the invoice row. The caller must submit the

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { InvoiceExtractionDraft } from "../lib/invoice-extraction";
+import { runInvoiceUploadFlow, runPostUploadExtractionFlow } from "../lib/invoice-upload";
 import { canApproveInvoice } from "../lib/invoice-review";
 import { parseMoneyToMinorUnits } from "../lib/money";
 import { getSupabaseBrowserClient } from "../lib/supabase";
@@ -136,9 +137,10 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     return details;
   }
 
-  async function loadWorkspace() {
+  async function loadWorkspace(options: { clearError?: boolean } = {}) {
     if (!supabase) { setLoading(false); return; }
-    setLoading(true); setError("");
+    setLoading(true);
+    if (options.clearError !== false) setError("");
     const { data: sessionData } = await supabase.auth.getSession();
     const currentUser = sessionData.session?.user;
     if (!currentUser) { setUserId(null); setLoading(false); return; }
@@ -175,28 +177,37 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     const invoiceId = crypto.randomUUID();
     const path = `${location.id}/${invoiceId}/${safeFileName(file.name)}`;
     let recordCreated = false;
-    let objectUploaded = false;
-    let uploadComplete = false;
     try {
-      const created = await supabase.rpc("create_invoice_record", { p_invoice_id: invoiceId, p_location_id: location.id, p_storage_path: path, p_original_filename: file.name, p_original_mime_type: file.type, p_original_size_bytes: file.size });
-      if (created.error) throw created.error;
-      recordCreated = true;
-      const uploaded = await supabase.storage.from("invoice-originals").upload(path, file, { upsert: false, contentType: file.type });
-      if (uploaded.error) throw uploaded.error;
-      objectUploaded = true;
-      const marked = await supabase.rpc("mark_invoice_uploaded", { p_invoice_id: invoiceId });
-      if (marked.error) throw marked.error;
-      uploadComplete = true;
-      const extracted = await fetch(`/api/invoices/${invoiceId}/extract`, { method: "POST" });
-      if (!extracted.ok) setError("Original saved. OCR is not configured yet; the owner can enter the review draft manually.");
-      await loadWorkspace();
+      const outcome = await runInvoiceUploadFlow({
+        createRecord: async () => {
+          const created = await supabase.rpc("create_invoice_record", { p_invoice_id: invoiceId, p_location_id: location.id, p_storage_path: path, p_original_filename: file.name, p_original_mime_type: file.type, p_original_size_bytes: file.size });
+          if (created.error) throw created.error;
+          recordCreated = true;
+        },
+        uploadObject: async () => {
+          const uploaded = await supabase.storage.from("invoice-originals").upload(path, file, { upsert: false, contentType: file.type });
+          if (uploaded.error) throw uploaded.error;
+        },
+        markUploaded: async () => {
+          const marked = await supabase.rpc("mark_invoice_uploaded", { p_invoice_id: invoiceId });
+          if (marked.error) throw marked.error;
+        },
+        reloadPersisted: async () => {
+          const details = await refreshInvoice(invoiceId);
+          if (!details || !["uploading", "needs_review"].includes(details.invoice.status)) throw new Error("Invoice state could not be reloaded");
+          return { status: details.invoice.status as "uploading" | "needs_review" };
+        },
+        requestExtraction: () => fetch(`/api/invoices/${invoiceId}/extract`, { method: "POST" })
+      });
+      await loadWorkspace({ clearError: false });
       await refreshInvoice(invoiceId);
+      if (outcome.message) setError(outcome.message);
     } catch (caught) {
-      if (recordCreated && !objectUploaded) {
-        await supabase.rpc("abandon_invoice_upload", { p_invoice_id: invoiceId, p_reason: "Storage upload failed; upload can be retried." });
-      }
       setError(caught instanceof Error ? caught.message : "Invoice upload could not be saved. Choose the file again to retry.");
-      await loadWorkspace();
+      await loadWorkspace({ clearError: false });
+      if (recordCreated) {
+        try { await refreshInvoice(invoiceId); } catch { /* The queue reload remains the source of truth. */ }
+      }
     }
     setBusy(false);
   }
@@ -205,11 +216,20 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
     if (!supabase || !selected || selected.status !== "uploading") return;
     setBusy(true); setError("");
     try {
-      const result = await supabase.rpc("mark_invoice_uploaded", { p_invoice_id: selected.id });
-      if (result.error) throw result.error;
-      const extracted = await fetch(`/api/invoices/${selected.id}/extract`, { method: "POST" });
-      if (!extracted.ok) setError("Original completed. OCR is not configured yet; the owner can enter the review draft manually.");
+      const outcome = await runPostUploadExtractionFlow({
+        markUploaded: async () => {
+          const result = await supabase.rpc("mark_invoice_uploaded", { p_invoice_id: selected.id });
+          if (result.error) throw result.error;
+        },
+        reloadPersisted: async () => {
+          const details = await refreshInvoice(selected.id);
+          if (!details || !["uploading", "needs_review"].includes(details.invoice.status)) throw new Error("Invoice state could not be reloaded");
+          return { status: details.invoice.status as "uploading" | "needs_review" };
+        },
+        requestExtraction: () => fetch(`/api/invoices/${selected.id}/extract`, { method: "POST" })
+      });
       await refreshInvoice(selected.id);
+      if (outcome.message) setError(outcome.message);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "The upload could not be completed."); }
     setBusy(false);
   }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { noProviderInvoiceAdapter } from "../../../../../lib/server/invoice-extraction";
+import { canRequestInitialExtraction } from "../../../../../lib/server/invoice-extraction-access";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ invoiceId: string }> }) {
   const invoiceId = (await params).invoiceId;
@@ -23,10 +24,36 @@ export async function POST(_request: Request, { params }: { params: Promise<{ in
 
   const { data: invoice, error: invoiceError } = await userClient
     .from("invoice_records")
-    .select("id, storage_path, original_mime_type")
+    .select("id, restaurant_id, location_id, uploaded_by, status, storage_path, original_mime_type")
     .eq("id", invoiceId)
     .maybeSingle();
   if (invoiceError || !invoice) return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  const membership = await userClient
+    .from("restaurant_memberships")
+    .select("role")
+    .eq("restaurant_id", invoice.restaurant_id)
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  const isLocationOwner = membership.data?.role === "owner";
+  if (userData.user.id !== invoice.uploaded_by && !isLocationOwner) {
+    return NextResponse.json({ error: "Only the original uploader or location owner can request initial extraction" }, { status: 403 });
+  }
+  const existingDraft = await userClient
+    .from("invoice_extraction_drafts")
+    .select("id")
+    .eq("invoice_id", invoice.id)
+    .limit(1)
+    .maybeSingle();
+  if (existingDraft.error) return NextResponse.json({ error: existingDraft.error.message }, { status: 500 });
+  if (!canRequestInitialExtraction({
+    callerId: userData.user.id,
+    uploadedBy: invoice.uploaded_by,
+    status: invoice.status,
+    isLocationOwner,
+    hasDraft: Boolean(existingDraft.data)
+  })) {
+    return NextResponse.json({ error: "Invoice is not eligible for initial extraction" }, { status: 409 });
+  }
   if (!secretKey) return NextResponse.json({ available: false, message: "No OCR adapter secret is configured" }, { status: 503 });
 
   const draft = await noProviderInvoiceAdapter.extract({

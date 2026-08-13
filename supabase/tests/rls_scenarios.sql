@@ -1,6 +1,6 @@
 begin;
 
-select plan(94);
+select plan(105);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -175,15 +175,21 @@ select throws_ok(
   '42501', null, 'authenticated clients cannot spoof provider output'
 );
 set role service_role;
+select throws_ok(
+  $$select * from public.save_invoice_adapter_draft(
+    '12121212-1212-1212-1212-121212121212', '55555555-5555-5555-5555-555555555555', 'none', null, null, null, null,
+    'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
+  'P0001', null, 'non-uploader location employee cannot request extraction'
+);
 select ok((select count(*) = 1 from public.save_invoice_adapter_draft(
   '12121212-1212-1212-1212-121212121212', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
   'CZK', null, null, null, '{}'::jsonb, '["No OCR provider configured"]'::jsonb
 )), 'trusted server adapter can create an explicitly untrusted draft');
 select throws_ok(
   $$select * from public.save_invoice_adapter_draft(
-    '13131313-1313-1313-1313-131313131313', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
+    '12121212-1212-1212-1212-121212121212', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
     'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
-  'P0001', null, 'trusted adapter cannot create a draft for an abandoned invoice'
+  'P0001', null, 'trusted adapter cannot run a second extraction'
 );
 set role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
@@ -207,7 +213,27 @@ select ok((select count(*) = 1 from public.abandon_invoice_upload('13131313-1313
 select is((select status from public.invoice_records where id = '13131313-1313-1313-1313-131313131313'), 'abandoned', 'abandoned upload is terminal');
 select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select is((select event_type from public.invoice_audit_events where invoice_id = '13131313-1313-1313-1313-131313131313' order by version desc limit 1), 'abandoned', 'abandonment has a distinct audit event');
+set role service_role;
+select throws_ok(
+  $$select * from public.save_invoice_adapter_draft(
+    '13131313-1313-1313-1313-131313131313', '44444444-4444-4444-4444-444444444444', 'none', null, null, null, null,
+    'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
+  'P0001', null, 'trusted adapter cannot create a draft for an abandoned invoice'
+);
+set role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', '44444444-4444-4444-4444-444444444444', 'role', 'authenticated')::text, true);
+select ok((select count(*) = 1 from public.create_invoice_record(
+  '14141414-1414-1414-1414-141414141414',
+  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-2222-2222-222222222222/14141414-1414-1414-1414-141414141414/owner-first.pdf',
+  'owner-first.pdf', 'application/pdf', 1000
+)), 'employee can create a second review invoice');
+select lives_ok(
+  $$insert into storage.objects (bucket_id, name, owner_id, metadata)
+    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/14141414-1414-1414-1414-141414141414/owner-first.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 1000))$$,
+  'uploader can insert the second exact invoice object'
+);
+select ok((select count(*) = 1 from public.mark_invoice_uploaded('14141414-1414-1414-1414-141414141414')), 'second invoice can enter human review');
 do $$ begin
   update storage.objects set metadata = jsonb_set(metadata, '{size}', '2000'::jsonb)
   where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf';
@@ -217,6 +243,7 @@ select throws_ok(
   $$delete from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'$$,
   '42501', null, 'employee cannot delete invoice storage objects'
 );
+select is((select count(*)::int from storage.objects where bucket_id = 'invoice-originals' and name = '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf'), 1, 'denied storage delete leaves the exact original intact');
 select throws_ok(
   $$update public.invoice_records set original_filename = 'tampered.pdf' where id = '12121212-1212-1212-1212-121212121212'$$,
   '42501', null, 'employee cannot update invoice records directly'
@@ -237,6 +264,24 @@ select is((select count(*)::int from public.revenue_entries where location_id = 
 
 select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select is((select count(*)::int from public.invoice_audit_events where invoice_id = '12121212-1212-1212-1212-121212121212'), 3, 'owner can read invoice creation/upload/draft audit');
+set role service_role;
+select ok((select count(*) = 1 from public.save_invoice_adapter_draft(
+  '14141414-1414-1414-1414-141414141414', '66666666-6666-6666-6666-666666666666', 'none', null, null, null, null,
+  'CZK', null, null, null, '{}'::jsonb, '["No OCR provider configured"]'::jsonb
+)), 'location owner can request the first extraction');
+set role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
+select ok((select count(*) = 1 from public.reject_invoice('14141414-1414-1414-1414-141414141414', 'rejected for extraction test')), 'owner can reject the second invoice');
+set role service_role;
+select throws_ok(
+  $$select * from public.save_invoice_adapter_draft(
+    '14141414-1414-1414-1414-141414141414', '66666666-6666-6666-6666-666666666666', 'none', null, null, null, null,
+    'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
+  'P0001', null, 'rejected invoice cannot receive an adapter draft'
+);
+set role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
+select is((select status from public.invoice_records where id = '14141414-1414-1414-1414-141414141414'), 'rejected', 'rejected invoice remains rejected after extraction attempt');
 select throws_ok(
   $$select * from public.approve_invoice('13131313-1313-1313-1313-131313131313', 1, 2, 'abandoned approval')$$,
   'P0001', null, 'abandoned invoice cannot be approved'
@@ -259,6 +304,15 @@ select ok((select count(*) = 1 from public.save_invoice_manual_draft(
   '12121212-1212-1212-1212-121212121212', 'Test supplier', 'INV-001', current_date, current_date + 14,
   'CZK', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, null
 )), 'owner can save the human-reviewed invoice draft');
+set role service_role;
+select throws_ok(
+  $$select * from public.save_invoice_adapter_draft(
+    '12121212-1212-1212-1212-121212121212', '66666666-6666-6666-6666-666666666666', 'none', null, null, null, null,
+    'CZK', null, null, null, '{}'::jsonb, '[]'::jsonb)$$,
+  'P0001', null, 'trusted adapter cannot supersede an existing manual draft'
+);
+set role authenticated;
+select set_config('request.jwt.claims', json_build_object('sub', '66666666-6666-6666-6666-666666666666', 'role', 'authenticated')::text, true);
 select throws_ok(
   $$select * from public.approve_invoice('12121212-1212-1212-1212-121212121212', 3, 4, 'stale draft')$$,
   'P0001', null, 'owner cannot approve a stale reviewed draft version'
