@@ -23,7 +23,12 @@ Build one modular restaurant platform, not separate throwaway apps. The first us
 10. UI must be visually calm, modern, extremely simple, large-touch-target, and usable one-handed during restaurant service.
 
 ## Current milestone
-M1 Revenue is accepted and frozen except for genuine bugs. The current milestone is M2 Shifts & Hours. See `docs/M2_SHIFTS.md`.
+M1 Revenue is accepted and frozen except for genuine bugs. M2 Shifts & Hours is
+merged and deployed; its final genuine employee acceptance test remains open in
+Issue #8. M3 Invoice Capture is merged and deployed; production acceptance
+remains open in Issue #10 while the isolated upload maintenance PR #12 is under
+review. M4A Approved Invoice Cost Register is the active parallel draft
+implementation. See `docs/M4_APPROVED_COSTS.md`.
 
 ## Current real workflow
 Revenue is written on paper and later copied manually into Excel. Daily fields are total revenue, card, cash, cash-register expenses, euros, and physical cash handed to the owner. Roughly 3–4 authorized users may submit revenue. Only the owner may correct submitted revenue. There are about 10 employees; shifts are currently tracked in Excel.

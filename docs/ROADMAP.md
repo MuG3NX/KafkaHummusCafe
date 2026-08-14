@@ -1,8 +1,13 @@
 # Roadmap
 
-## Current milestone — M2 Shifts & Hours
+## Current milestone — M4A Approved Invoice Cost Register
 
-M1 Revenue is production-deployed, accepted, and frozen except for genuine bugs. The active implementation milestone is the focused employee shifts/hours vertical slice described in [`M2_SHIFTS.md`](M2_SHIFTS.md).
+M1 Revenue is production-deployed, accepted, and frozen except for genuine
+bugs. M2 is merged and deployed with one genuine employee acceptance test still
+pending in Issue #8. M3 is merged and deployed with production acceptance still
+pending in Issue #10 and the isolated upload maintenance PR #12. The active
+parallel draft implementation is M4A, described in
+[`M4_APPROVED_COSTS.md`](M4_APPROVED_COSTS.md).
 
 ## M0 — Foundation + Touchable Preview
 Goal: establish the repository contract and a phone-first visual slice immediately.
@@ -38,14 +43,12 @@ Goal: establish the repository contract and a phone-first visual slice immediate
 - supplier/invoice/date/net/VAT/gross extraction
 - confidence/validation UI
 - human review + approval
-- unpaid/paid state
 - append-only corrections/audit
 
 ## M4 — Costs + Closing
-- approved invoice costs into operational monthly reporting
-- cash-register expense linkage/reconciliation
-- end-of-shift checklist using service-day state
-- missing-item visibility
+- M4A: approved invoice costs into operational monthly reporting
+- M4B: cash-register expense linkage/reconciliation
+- M4C: end-of-shift checklist and missing-item visibility
 
 ## M5 — Supplier Ordering / FANY
 - canonical suppliers/products
@@ -61,4 +64,6 @@ Goal: establish the repository contract and a phone-first visual slice immediate
 - do not claim official accounting correctness without validation
 
 ## Later
-Inventory, scheduling, product price history, deeper analytics, accounting connectors, hardware/POS integrations, then potentially native POS capabilities.
+Paid/unpaid workflow, inventory, scheduling, product price history, deeper
+analytics, accounting connectors, hardware/POS integrations, then potentially
+native POS capabilities.

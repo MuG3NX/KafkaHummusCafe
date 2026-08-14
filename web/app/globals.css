@@ -46,6 +46,8 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .module-nav button { min-height: 42px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 900; }
 .module-nav button.active { background: var(--ink); color: white; }
 .module-nav-three { grid-template-columns: repeat(3, 1fr); }
+.module-nav-four { grid-template-columns: repeat(4, 1fr); }
+.module-nav-four button { font-size: 12px; }
 .file-btn { display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; }
 .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .invoice-row { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; border-top: 1px solid var(--line); background: transparent; padding: 16px 0; text-align: left; }
@@ -66,4 +68,20 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .shift-duration { text-align: right; white-space: nowrap; font-weight: 800; }
 .shift-duration .btn { display: block; margin-top: 8px; }
 .team-total small { color: var(--muted); font-size: 11px; font-weight: 700; }
+.cost-total-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+.cost-total { border: 1px solid var(--line); border-radius: 18px; padding: 15px; min-width: 0; }
+.cost-total > strong { display: block; margin: 8px 0 12px; font-size: 20px; overflow-wrap: anywhere; }
+.cost-total > div { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; font-size: 12px; }
+.cost-total span, .cost-total small { color: var(--muted); }
+.cost-total b { text-align: right; overflow-wrap: anywhere; }
+.cost-total small { display: block; margin-top: 10px; }
+.cost-row { border-top: 1px solid var(--line); padding: 18px 0; }
+.cost-row:first-of-type { border-top: 0; }
+.cost-row-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.cost-row-head > div { min-width: 0; }
+.cost-row-head strong, .cost-row-head small { display: block; }
+.cost-row-head strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cost-row-head small { color: var(--muted); margin-top: 5px; }
+.cost-row-head > b { text-align: right; overflow-wrap: anywhere; }
+.cost-row-money { display: flex; flex-wrap: wrap; gap: 7px 12px; color: var(--muted); font-size: 12px; margin-top: 12px; }
 @media (min-width: 700px) { .app-shell { padding-top: 48px; } }
