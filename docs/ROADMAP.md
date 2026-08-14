@@ -10,8 +10,7 @@ architecture-approved, merged, and deployed, with real owner acceptance still
 pending in Issue #13. The restaurant workflow decisions are resolved and M4B1
 Cash Expense Evidence Ledger is the active authorized draft implementation in
 Issue #17. M4B2 daily cash-expense reconciliation remains later and
-unimplemented. See
-[`M4_APPROVED_COSTS.md`](M4_APPROVED_COSTS.md).
+unimplemented. See [`M4B_CASH_EXPENSES.md`](M4B_CASH_EXPENSES.md).
 
 ## M0 — Foundation + Touchable Preview
 Goal: establish the repository contract and a phone-first visual slice immediately.

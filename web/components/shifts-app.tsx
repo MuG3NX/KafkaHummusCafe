@@ -33,6 +33,7 @@ export function ShiftsApp({ onOpenRevenue, onOpenInvoices, onOpenCosts }: Shifts
   const [businessDate, setBusinessDate] = useState("");
   const [membershipId, setMembershipId] = useState<string | null>(null);
   const [owner, setOwner] = useState(false);
+  const [costsAccess, setCostsAccess] = useState(false);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [editing, setEditing] = useState<Shift | null>(null);
@@ -57,7 +58,7 @@ export function ShiftsApp({ onOpenRevenue, onOpenInvoices, onOpenCosts }: Shifts
     const membershipResult = await supabase.from("restaurant_memberships").select("id, restaurant_id, role").eq("user_id", currentUser.id).limit(1).maybeSingle();
     if (membershipResult.error || !membershipResult.data) { setError(membershipResult.error?.message ?? "Your account is not connected to a restaurant yet."); setLoading(false); return; }
     const membership = membershipResult.data as { id: string; restaurant_id: string; role: string };
-    setMembershipId(membership.id); setOwner(membership.role === "owner");
+    setMembershipId(membership.id); setOwner(membership.role === "owner"); setCostsAccess(membership.role === "owner" || membership.role === "manager");
     const locationResult = await supabase.from("locations").select("id, name, timezone").eq("restaurant_id", membership.restaurant_id).limit(1).single();
     if (locationResult.error || !locationResult.data) { setError(locationResult.error?.message ?? "No restaurant location is configured."); setLoading(false); return; }
     const currentLocation = locationResult.data as Location;
@@ -111,7 +112,7 @@ export function ShiftsApp({ onOpenRevenue, onOpenInvoices, onOpenCosts }: Shifts
   const membersWithShifts = members.filter((member) => shifts.some((shift) => shift.membership_id === member.id));
 
   return <main className="app-shell">
-    <div className={`module-nav ${owner && onOpenCosts ? "module-nav-four" : onOpenInvoices ? "module-nav-three" : ""}`}><button onClick={onOpenRevenue}>Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}{owner && onOpenCosts && <button onClick={onOpenCosts}>Costs</button>}<button className="active">Shifts</button></div>
+    <div className={`module-nav ${costsAccess && onOpenCosts ? "module-nav-four" : onOpenInvoices ? "module-nav-three" : ""}`}><button onClick={onOpenRevenue}>Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}{costsAccess && onOpenCosts && <button onClick={onOpenCosts}>Costs</button>}<button className="active">Shifts</button></div>
     <header className="top"><div><div className="kicker">KAFKA</div><h1>Shifts</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     <p className="muted">{location.name} · service day {businessDate}</p>
     <div className="banner">● Connected · clock times come from the database</div>
