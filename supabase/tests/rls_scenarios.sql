@@ -1,6 +1,6 @@
 begin;
 
-select plan(105);
+select plan(107);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -147,10 +147,20 @@ select throws_ok(
     values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'image/png', 'size', 1000))$$,
   '42501', null, 'uploader cannot insert the exact path with wrong MIME metadata'
 );
-select throws_ok(
+select ok((select count(*) = 1 from public.create_invoice_record(
+  '21212121-2121-2121-2121-212121212121',
+  '22222222-2222-2222-2222-222222222222',
+  '22222222-2222-2222-2222-222222222222/21212121-2121-2121-2121-212121212121/wrong-size.pdf',
+  'wrong-size.pdf', 'application/pdf', 1000
+)), 'employee can create an independent invoice for size confirmation testing');
+select lives_ok(
   $$insert into storage.objects (bucket_id, name, owner_id, metadata)
-    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/12121212-1212-1212-1212-121212121212/invoice.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 2000))$$,
-  '42501', null, 'uploader cannot insert the exact path with wrong size metadata'
+    values ('invoice-originals', '22222222-2222-2222-2222-222222222222/21212121-2121-2121-2121-212121212121/wrong-size.pdf', auth.uid(), jsonb_build_object('mimetype', 'application/pdf', 'size', 2000))$$,
+  'uploader can insert the exact path before database-side size confirmation'
+);
+select throws_ok(
+  $$select * from public.mark_invoice_uploaded('21212121-2121-2121-2121-212121212121')$$,
+  'P0001', null, 'invoice with wrong storage size cannot enter human review'
 );
 select lives_ok(
   $$insert into storage.objects (bucket_id, name, owner_id, metadata)

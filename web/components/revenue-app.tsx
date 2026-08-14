@@ -30,29 +30,72 @@ function draftFromEntry(entry: RevenueEntry): Draft {
 
 function entryTotal(entry: RevenueEntry): string { return formatMinorUnits(entry.total_revenue_czk_minor, "CZK"); }
 
+type AuthMode = "signin" | "signup" | "reset";
+
 function AuthCard({ onReady }: { onReady: () => void }) {
   const supabase = getSupabaseBrowserClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   if (!supabase) return <main className="app-shell"><section className="card auth-card"><div className="kicker">KAFKA</div><h1>Revenue</h1><p className="sub">Supabase is not configured yet. Add the two public environment variables from <code>web/.env.example</code> before signing in.</p></section></main>;
   const client = supabase;
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setMessage("");
-    const result = mode === "signin" ? await client.auth.signInWithPassword({ email, password }) : await client.auth.signUp({ email, password });
+    if (mode === "signin") {
+      const result = await client.auth.signInWithPassword({ email, password });
+      setBusy(false);
+      if (result.error) setMessage(result.error.message); else onReady();
+      return;
+    }
+    if (mode === "signup") {
+      const result = await client.auth.signUp({ email, password });
+      setBusy(false);
+      if (result.error) setMessage(result.error.message);
+      else if (result.data.session) onReady();
+      else setMessage("Account setup started. Confirm your email if requested, then sign in. If this email already has an account, use Forgot password to set a password.");
+      return;
+    }
+    const result = await client.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/` });
     setBusy(false);
     if (result.error) setMessage(result.error.message);
-    else if (mode === "signup") setMessage("Account created. If email confirmation is enabled, confirm your email, then sign in.");
-    else onReady();
+    else setMessage("If an account exists for this email, a password reset email was sent. Check your inbox and spam folder.");
   }
-  return <main className="app-shell"><section className="card auth-card"><div className="kicker">KAFKA</div><h1>Revenue</h1><p className="sub">Sign in to the shared service-day ledger.</p><form onSubmit={submit}>
+  const title = mode === "reset" ? "Set your password" : "Revenue";
+  const subtitle = mode === "reset" ? "Get a secure link to choose a new password." : "Sign in to the shared service-day ledger.";
+  return <main className="app-shell"><section className="card auth-card"><div className="kicker">KAFKA</div><h1>{title}</h1><p className="sub">{subtitle}</p><form onSubmit={submit}>
     <label className="field"><span>Email</span><div className="input-wrap"><input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} /></div></label>
-    <label className="field"><span>Password</span><div className="input-wrap"><input required minLength={6} type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>
+    {mode !== "reset" && <label className="field"><span>Password</span><div className="input-wrap"><input required minLength={6} type="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>}
     {message && <p className="error" role="alert">{message}</p>}
-    <button className="btn" disabled={busy}>{busy ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}</button>
-  </form><button className="btn secondary" onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setMessage(""); }}>{mode === "signin" ? "Create an account" : "Back to sign in"}</button></section></main>;
+    <button className="btn" disabled={busy}>{busy ? "Working…" : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset email"}</button>
+  </form>{mode === "signin" && <button className="btn secondary" onClick={() => { setMode("reset"); setMessage(""); }}>Forgot password?</button>}{mode !== "signin" && <button className="btn secondary" onClick={() => { setMode("signin"); setMessage(""); }}>{mode === "signup" ? "Back to sign in" : "Back to sign in"}</button>}{mode === "signin" && <button className="btn secondary" onClick={() => { setMode("signup"); setMessage(""); }}>Create an account</button>}</section></main>;
+}
+
+function PasswordRecoveryCard({ onReady }: { onReady: () => void }) {
+  const supabase = getSupabaseBrowserClient();
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!supabase) return null;
+  const client = supabase;
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (password.length < 6) { setMessage("Use at least 6 characters."); return; }
+    if (password !== confirmation) { setMessage("Passwords do not match."); return; }
+    setBusy(true); setMessage("");
+    const result = await client.auth.updateUser({ password });
+    setBusy(false);
+    if (result.error) setMessage(result.error.message);
+    else { window.history.replaceState({}, document.title, window.location.pathname); onReady(); }
+  }
+  return <main className="app-shell"><section className="card auth-card"><div className="kicker">KAFKA</div><h1>Choose a password</h1><p className="sub">This account is ready. Choose the password you will use to sign in.</p><form onSubmit={submit}>
+    <label className="field"><span>New password</span><div className="input-wrap"><input required minLength={6} type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div></label>
+    <label className="field"><span>Confirm password</span><div className="input-wrap"><input required minLength={6} type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></div></label>
+    {message && <p className="error" role="alert">{message}</p>}
+    <button className="btn" disabled={busy}>{busy ? "Saving…" : "Save password"}</button>
+  </form></section></main>;
 }
 
 function MoneyField({ field, value, onChange }: { field: typeof FIELDS[number]; value: string; onChange: (value: string) => void }) {
@@ -81,6 +124,7 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices }: { onOpenShifts?: ()
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [passwordRecovery, setPasswordRecovery] = useState(() => typeof window !== "undefined" && window.location.hash.includes("type=recovery"));
 
   async function loadWorkspace() {
     if (!supabase) { setLoading(false); return; }
@@ -111,8 +155,18 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices }: { onOpenShifts?: ()
   }
 
   // loadWorkspace is intentionally recreated only with the Supabase client; auth events refresh the same workspace.
-  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
-  useEffect(() => { void loadWorkspace(); if (!supabase) return; const { data } = supabase.auth.onAuthStateChange(() => { void loadWorkspace(); }); return () => data.subscription.unsubscribe(); }, [supabase]);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    void loadWorkspace();
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") { setPasswordRecovery(true); setLoading(false); return; }
+      void loadWorkspace();
+    });
+    return () => data.subscription.unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function updateDraft(key: keyof Draft, value: string) { setDraft((current) => ({ ...current, [key]: value })); }
   function parsedDraft() {
@@ -127,6 +181,7 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices }: { onOpenShifts?: ()
     if (!supabase || !editing) return; setBusy(true); setError("");
     try { const values = parsedDraft(); const result = await supabase.rpc("correct_revenue_entry", { p_revenue_entry_id: editing.id, p_total_revenue_czk_minor: values.total, p_card_czk_minor: values.card, p_cash_czk_minor: values.cash, p_cash_register_expenses_czk_minor: values.expenses, p_euros_minor: values.euros, p_physical_cash_handed_over_czk_minor: values.handover, p_note: draft.note, p_reason: correctionReason }); if (result.error) throw result.error; const corrected = (Array.isArray(result.data) ? result.data[0] : result.data) as RevenueEntry; setHistory((current) => current.map((item) => item.id === corrected.id ? corrected : item)); if (entry?.id === corrected.id) setEntry(corrected); setEditing(null); setCorrectionReason(""); } catch (caught) { setError(caught instanceof Error ? caught.message : "Correction could not be saved."); } finally { setBusy(false); }
   }
+  if (passwordRecovery) return <PasswordRecoveryCard onReady={() => { setPasswordRecovery(false); void loadWorkspace(); }} />;
   if (!userId) return <AuthCard onReady={() => { void loadWorkspace(); }} />;
   if (loading) return <main className="app-shell"><div className="kicker">KAFKA</div><h1>Today</h1><p className="muted">Loading the service day…</p></main>;
   const submitted = Boolean(entry);

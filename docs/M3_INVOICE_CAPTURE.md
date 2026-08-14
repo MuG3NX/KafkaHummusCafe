@@ -47,8 +47,10 @@ or extracted value as authoritative. Normal app paths do not overwrite or
 hard-delete original objects.
 
 The upload policy binds an object to the exact `uploading` invoice record,
-uploader, path, MIME type, and byte size. The completion RPC refuses to advance
-the record unless that exact private object exists. A failed pre-completion
+uploader, path, and MIME type. Supabase Storage supplies the authoritative byte
+size after the object is written; `mark_invoice_uploaded` verifies that exact
+size and MIME type before the invoice can enter review. A missing or
+size-mismatched original can never become reviewable. A failed pre-completion
 upload remains recoverable online: the user can retry completion when the
 object exists, or abandon it with a distinct audit event. Abandonment is
 terminal; retrying after abandonment starts a new upload and does not delete
