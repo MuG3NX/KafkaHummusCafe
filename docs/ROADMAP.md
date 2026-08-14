@@ -1,12 +1,16 @@
 # Roadmap
 
-## Current milestone — M4A Approved Invoice Cost Register
+## Current state — M4A deployed, acceptance pending
 
 M1 Revenue is production-deployed, accepted, and frozen except for genuine
 bugs. M2 is merged and deployed with one genuine employee acceptance test still
-pending in Issue #8. M3 is merged and deployed with production acceptance still
-pending in Issue #10 and the isolated upload maintenance PR #12. The active
-parallel draft implementation is M4A, described in
+pending in Issue #8. M3 and its upload maintenance fix are merged and deployed,
+with real invoice acceptance still pending in Issue #10. M4A is
+architecture-approved, merged, and deployed, with real owner acceptance still
+pending in Issue #13. The restaurant workflow decisions are resolved and M4B1
+Cash Expense Evidence Ledger is the active authorized draft implementation in
+Issue #17. M4B2 daily cash-expense reconciliation remains later and
+unimplemented. See
 [`M4_APPROVED_COSTS.md`](M4_APPROVED_COSTS.md).
 
 ## M0 — Foundation + Touchable Preview
@@ -47,7 +51,8 @@ Goal: establish the repository contract and a phone-first visual slice immediate
 
 ## M4 — Costs + Closing
 - M4A: approved invoice costs into operational monthly reporting
-- M4B: cash-register expense linkage/reconciliation
+- M4B1: individual cash-expense internal evidence ledger
+- M4B2: compare confirmed M4B1 expenses with the authoritative M1 daily cash-expense aggregate
 - M4C: end-of-shift checklist and missing-item visibility
 
 ## M5 — Supplier Ordering / FANY

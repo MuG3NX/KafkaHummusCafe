@@ -2,11 +2,31 @@
 
 ## Status
 
-M4A is the active parallel draft implementation. M2 remains open only for one
-genuine employee Start → End acceptance test. M3 is merged and deployed, while
-its production acceptance remains open until Issue #10 and the parked upload
-maintenance PR #12 are completed. M4A must not change those modules or deploy
-before review.
+M4A is architecture-approved, merged, and deployed. Its real owner acceptance
+remains open in Issue #13 until one legitimate approved CZK invoice is verified
+in the issue-date month with matching net, VAT, and gross values. M2 remains
+open only for one genuine employee Start → End acceptance test in Issue #8. M3
+and its upload maintenance fix are deployed, while real invoice acceptance
+remains open in Issue #10. M4B1 Cash Expense Evidence Ledger is the active
+authorized draft implementation in Issue #17. M4B2 daily cash-expense
+reconciliation remains later and unimplemented.
+
+## M4B handoff
+
+`revenue_entries.cash_register_expenses_czk_minor` remains the authoritative
+daily closing aggregate. It may contain documented and undocumented cash
+expenses. M4B1 records individual supporting evidence without calculating,
+overwriting, or reconciling that aggregate.
+
+An expense belongs to the service day when cash leaves the register. Every
+expense requires an internal evidence record containing its exact CZK amount,
+service day, description, actors, database timestamps, version, and audit
+history. An external invoice or receipt is not required in M4B1.
+
+Owners may capture and confirm expenses across their restaurant. Managers may
+do so only for locations present in their membership location assignments.
+Employees have no M4B1 access. M4B2 will later compare the M1 aggregate with
+confirmed M4B1 expenses; no reconciliation behavior is defined here.
 
 ## Objective
 
