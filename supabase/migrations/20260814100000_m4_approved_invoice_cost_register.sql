@@ -55,6 +55,7 @@ begin
    and approved.version = invoice.approved_draft_version
   where invoice.location_id = p_location_id
     and invoice.status = 'approved'
+    and approved.currency = 'CZK'
     and approved.issue_date >= month_start
     and approved.issue_date < month_end
   order by approved.issue_date desc, approved.supplier_name, invoice.id;

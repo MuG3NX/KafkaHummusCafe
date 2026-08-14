@@ -1,6 +1,6 @@
 begin;
 
-select plan(32);
+select plan(34);
 create extension if not exists pgtap;
 
 insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at)
@@ -43,7 +43,9 @@ values
   ('45000000-0000-0000-0000-000000000007', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000007/uploading.pdf', 'uploading.pdf', 'application/pdf', 1000, 'uploading', 1, '2026-08-01 12:00:00+00'),
   ('45000000-0000-0000-0000-000000000008', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000008/review.pdf', 'review.pdf', 'application/pdf', 1000, 'needs_review', 2, '2026-08-01 12:00:00+00'),
   ('45000000-0000-0000-0000-000000000009', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000009/rejected.pdf', 'rejected.pdf', 'application/pdf', 1000, 'rejected', 3, '2026-08-01 12:00:00+00'),
-  ('45000000-0000-0000-0000-000000000010', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000010/abandoned.pdf', 'abandoned.pdf', 'application/pdf', 1000, 'abandoned', 2, '2026-08-01 12:00:00+00');
+  ('45000000-0000-0000-0000-000000000010', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000010/abandoned.pdf', 'abandoned.pdf', 'application/pdf', 1000, 'abandoned', 2, '2026-08-01 12:00:00+00'),
+  ('45000000-0000-0000-0000-000000000011', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000011/usd.pdf', 'usd.pdf', 'application/pdf', 1000, 'needs_review', 3, '2026-08-01 12:00:00+00'),
+  ('45000000-0000-0000-0000-000000000012', '41000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001', '43000000-0000-0000-0000-000000000001', '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000012/month-end-czk.pdf', 'month-end-czk.pdf', 'application/pdf', 1000, 'needs_review', 3, '2026-08-01 12:00:00+00');
 
 insert into public.invoice_extraction_drafts (
   invoice_id, version, source, supplier_name, invoice_number, issue_date, due_date,
@@ -58,7 +60,9 @@ values
   ('45000000-0000-0000-0000-000000000005', 2, 'manual', 'Second Location Supplier', 'LOC-2', '2026-08-15', null, 'CZK', 40000, 8400, 48400, '43000000-0000-0000-0000-000000000001'),
   ('45000000-0000-0000-0000-000000000006', 2, 'manual', 'Foreign Supplier', 'FOREIGN', '2026-08-20', null, 'CZK', 50000, 10500, 60500, '43000000-0000-0000-0000-000000000003'),
   ('45000000-0000-0000-0000-000000000008', 2, 'manual', 'Review Supplier', 'REVIEW', '2026-08-10', null, 'CZK', 60000, 12600, 72600, '43000000-0000-0000-0000-000000000001'),
-  ('45000000-0000-0000-0000-000000000009', 2, 'manual', 'Rejected Supplier', 'REJECTED', '2026-08-11', null, 'CZK', 70000, 14700, 84700, '43000000-0000-0000-0000-000000000001');
+  ('45000000-0000-0000-0000-000000000009', 2, 'manual', 'Rejected Supplier', 'REJECTED', '2026-08-11', null, 'CZK', 70000, 14700, 84700, '43000000-0000-0000-0000-000000000001'),
+  ('45000000-0000-0000-0000-000000000011', 2, 'manual', 'Dollar Supplier', 'USD-1', '2026-08-20', null, 'USD', 80000, 0, 80000, '43000000-0000-0000-0000-000000000001'),
+  ('45000000-0000-0000-0000-000000000012', 2, 'manual', 'Month End CZK Supplier', 'CZK-EDGE', '2026-08-31', null, 'CZK', 90000, 18900, 108900, '43000000-0000-0000-0000-000000000001');
 
 update public.invoice_records
 set status = 'approved', approved_draft_version = 2
@@ -68,7 +72,9 @@ where id in (
   '45000000-0000-0000-0000-000000000003',
   '45000000-0000-0000-0000-000000000004',
   '45000000-0000-0000-0000-000000000005',
-  '45000000-0000-0000-0000-000000000006'
+  '45000000-0000-0000-0000-000000000006',
+  '45000000-0000-0000-0000-000000000011',
+  '45000000-0000-0000-0000-000000000012'
 );
 
 set role authenticated;
@@ -91,18 +97,20 @@ select is((select approved_draft_version from public.get_approved_invoice_costs(
 select is((select net_minor from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000001'), '9007199254740993', 'bigint money crosses the RPC boundary as exact text');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000001'), 1, 'issue date includes an invoice even when its creation timestamp is in another month');
 select is((select due_date from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000001'), null, 'optional due date remains nullable');
-select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000002'), 1, 'last day of the selected month is included');
+select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000002'), 0, 'approved EUR invoice is excluded from the CZK register');
+select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000011'), 0, 'approved USD invoice is excluded from the CZK register');
+select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000012'), 1, 'last day of the selected month is included for CZK');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000003'), 0, 'first day of the next month is excluded');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000004'), 0, 'previous month invoice is excluded');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000005'), 0, 'another location invoice is excluded from the selected location');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000006'), 0, 'another restaurant invoice is excluded');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id in ('45000000-0000-0000-0000-000000000007', '45000000-0000-0000-0000-000000000008', '45000000-0000-0000-0000-000000000009', '45000000-0000-0000-0000-000000000010')), 0, 'uploading review rejected and abandoned invoices are excluded');
 select results_eq(
-  $$select currency from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') order by currency$$,
-  $$values ('CZK'::text), ('EUR'::text)$$,
-  'currencies are returned as separate invoice rows'
+  $$select distinct currency from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01')$$,
+  $$values ('CZK'::text)$$,
+  'only CZK snapshots are returned'
 );
-select is((select storage_path from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000002'), '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000002/eur.pdf', 'register returns the authorized private-original identity');
+select is((select storage_path from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000001'), '42000000-0000-0000-0000-000000000001/45000000-0000-0000-0000-000000000001/big-czk.pdf', 'register returns the authorized private-original identity');
 select is((select count(*)::int from public.invoice_audit_events), 0, 'reporting RPC performs no audit or financial mutation');
 select is((select provolatile::text from pg_proc where oid = 'public.get_approved_invoice_costs(uuid,date)'::regprocedure), 's', 'reporting RPC is declared stable and read-only');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-14')), 2, 'a selected date is normalized to its calendar month');
@@ -128,14 +136,14 @@ select throws_ok(
 set role authenticated;
 select set_config('request.jwt.claims', json_build_object('sub', '43000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 select ok((select count(*) = 1 from public.save_invoice_manual_draft(
-  '45000000-0000-0000-0000-000000000002', 'Corrected Euro Supplier', 'EUR-EDGE', '2026-08-31', '2026-09-14',
-  'EUR', 10000, 2100, 12100, '{}'::jsonb, '[]'::jsonb, 'supplier corrected'
+  '45000000-0000-0000-0000-000000000001', 'Corrected Big Supplier', 'CZK-BIG', '2026-08-01', null,
+  'CZK', 9007199254740993, 2100, 9007199254743093, '{}'::jsonb, '[]'::jsonb, 'supplier corrected'
 )), 'owner can save an audited correction to an approved invoice');
-select ok((select status = 'needs_review' and approved_draft_version is null from public.invoice_records where id = '45000000-0000-0000-0000-000000000002'), 'correction clears approval and returns the invoice to review');
+select ok((select status = 'needs_review' and approved_draft_version is null from public.invoice_records where id = '45000000-0000-0000-0000-000000000001'), 'correction clears approval and returns the invoice to review');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01')), 1, 'corrected invoice disappears from the approved register immediately');
-select ok((select count(*) = 1 from public.approve_invoice('45000000-0000-0000-0000-000000000002', 4, 4, 'corrected invoice re-approved')), 'owner can re-approve the exact corrected version');
+select ok((select count(*) = 1 from public.approve_invoice('45000000-0000-0000-0000-000000000001', 5, 5, 'corrected invoice re-approved')), 'owner can re-approve the exact corrected version');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01')), 2, 're-approved corrected invoice returns to the register');
-select is((select supplier_name from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000002'), 'Corrected Euro Supplier', 'register returns the exact corrected version after re-approval');
+select is((select supplier_name from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-08-01') where invoice_id = '45000000-0000-0000-0000-000000000001'), 'Corrected Big Supplier', 'register returns the exact corrected version after re-approval');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-09-01')), 1, 'September register starts at the first day boundary');
 select is((select count(*)::int from public.get_approved_invoice_costs('42000000-0000-0000-0000-000000000001', '2026-07-01')), 1, 'July register includes the previous month fixture only');
 

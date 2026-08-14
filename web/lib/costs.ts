@@ -1,5 +1,3 @@
-import type { Currency } from "./money";
-
 export type ApprovedInvoiceCost = {
   invoice_id: string;
   storage_path: string;
@@ -9,14 +7,13 @@ export type ApprovedInvoiceCost = {
   invoice_number: string;
   issue_date: string;
   due_date: string | null;
-  currency: Currency;
+  currency: string;
   net_minor: string;
   vat_minor: string;
   gross_minor: string;
 };
 
-export type CurrencyCostTotal = {
-  currency: Currency;
+export type CzkCostTotal = {
   count: number;
   netMinor: string;
   vatMinor: string;
@@ -35,23 +32,19 @@ export function currentMonthForTimezone(now: Date, timezone: string): string {
   return `${year}-${month}`;
 }
 
-export function totalsByCurrency(rows: ApprovedInvoiceCost[]): CurrencyCostTotal[] {
-  const totals: Record<Currency, { count: number; net: bigint; vat: bigint; gross: bigint }> = {
-    CZK: { count: 0, net: 0n, vat: 0n, gross: 0n },
-    EUR: { count: 0, net: 0n, vat: 0n, gross: 0n }
-  };
+export function totalCzkCosts(rows: ApprovedInvoiceCost[]): CzkCostTotal {
+  const total = { count: 0, net: 0n, vat: 0n, gross: 0n };
   for (const row of rows) {
-    const total = totals[row.currency];
+    if (row.currency !== "CZK") continue;
     total.count += 1;
     total.net += BigInt(row.net_minor);
     total.vat += BigInt(row.vat_minor);
     total.gross += BigInt(row.gross_minor);
   }
-  return (Object.keys(totals) as Currency[]).map((currency) => ({
-    currency,
-    count: totals[currency].count,
-    netMinor: totals[currency].net.toString(),
-    vatMinor: totals[currency].vat.toString(),
-    grossMinor: totals[currency].gross.toString()
-  }));
+  return {
+    count: total.count,
+    netMinor: total.net.toString(),
+    vatMinor: total.vat.toString(),
+    grossMinor: total.gross.toString()
+  };
 }

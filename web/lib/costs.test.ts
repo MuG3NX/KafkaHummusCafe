@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentMonthForTimezone, totalsByCurrency, type ApprovedInvoiceCost } from "./costs";
+import { currentMonthForTimezone, totalCzkCosts, type ApprovedInvoiceCost } from "./costs";
 
 function cost(overrides: Partial<ApprovedInvoiceCost>): ApprovedInvoiceCost {
   return {
@@ -20,24 +20,26 @@ function cost(overrides: Partial<ApprovedInvoiceCost>): ApprovedInvoiceCost {
 }
 
 describe("approved invoice costs", () => {
-  it("keeps CZK and EUR totals separate", () => {
-    const totals = totalsByCurrency([
+  it("totals only CZK rows and excludes foreign currencies", () => {
+    const total = totalCzkCosts([
       cost({ currency: "CZK", net_minor: "10000", vat_minor: "2100", gross_minor: "12100" }),
-      cost({ invoice_id: "eur", currency: "EUR", net_minor: "5000", vat_minor: "1000", gross_minor: "6000" })
+      cost({ invoice_id: "eur", currency: "EUR", net_minor: "5000", vat_minor: "1000", gross_minor: "6000" }),
+      cost({ invoice_id: "usd", currency: "USD", net_minor: "9000", vat_minor: "0", gross_minor: "9000" })
     ]);
-    expect(totals).toEqual([
-      { currency: "CZK", count: 1, netMinor: "10000", vatMinor: "2100", grossMinor: "12100" },
-      { currency: "EUR", count: 1, netMinor: "5000", vatMinor: "1000", grossMinor: "6000" }
-    ]);
+    expect(total).toEqual({ count: 1, netMinor: "10000", vatMinor: "2100", grossMinor: "12100" });
   });
 
   it("sums bigint strings without JavaScript Number precision loss", () => {
-    const [czk] = totalsByCurrency([
+    const total = totalCzkCosts([
       cost({ net_minor: "9007199254740993", vat_minor: "2100", gross_minor: "9007199254743093" }),
       cost({ invoice_id: "second", net_minor: "7", vat_minor: "1", gross_minor: "8" })
     ]);
-    expect(czk.netMinor).toBe("9007199254741000");
-    expect(czk.grossMinor).toBe("9007199254743101");
+    expect(total.netMinor).toBe("9007199254741000");
+    expect(total.grossMinor).toBe("9007199254743101");
+  });
+
+  it("returns an exact zero summary for an empty register", () => {
+    expect(totalCzkCosts([])).toEqual({ count: 0, netMinor: "0", vatMinor: "0", grossMinor: "0" });
   });
 
   it("resolves the month in the location timezone", () => {

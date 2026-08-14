@@ -68,9 +68,7 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .shift-duration { text-align: right; white-space: nowrap; font-weight: 800; }
 .shift-duration .btn { display: block; margin-top: 8px; }
 .team-total small { color: var(--muted); font-size: 11px; font-weight: 700; }
-.cost-total-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
-.cost-total { border: 1px solid var(--line); border-radius: 18px; padding: 15px; min-width: 0; }
-.cost-total > strong { display: block; margin: 8px 0 12px; font-size: 20px; overflow-wrap: anywhere; }
+.cost-total { border: 1px solid var(--line); border-radius: 18px; padding: 15px; min-width: 0; margin-top: 14px; }
 .cost-total > div { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; font-size: 12px; }
 .cost-total span, .cost-total small { color: var(--muted); }
 .cost-total b { text-align: right; overflow-wrap: anywhere; }

@@ -10,7 +10,7 @@ before review.
 
 ## Objective
 
-Give the owner a calm mobile monthly register of costs derived only from
+Give the owner a calm mobile monthly CZK register of costs derived only from
 human-approved invoice data. This is an operational view, not an accounting or
 VAT return.
 
@@ -19,7 +19,7 @@ VAT return.
 - owner-only Costs module;
 - month selector;
 - approved invoice count;
-- net, VAT, and gross totals grouped separately by currency;
+- one CZK net, VAT, and gross summary;
 - approved invoice list with supplier, invoice number, issue date, optional due
   date, net, VAT, and gross;
 - authorized link to the private original;
@@ -41,12 +41,13 @@ owner-authorized database read over the approved invoice snapshot.
 - `issue_date` places an invoice into a month.
 - The selected month is inclusive from its first day and exclusive of the first
   day of the next month.
-- CZK and EUR totals remain independent. M4A performs no exchange-rate
-  conversion and never adds currencies together.
+- M4A is a CZK-only operational cost register. Only human-approved CZK invoice
+  snapshots are included. Foreign-currency cost reporting and exchange-rate
+  conversion are outside this milestone.
 - Money remains Postgres `bigint` internally and crosses the API boundary as
   exact decimal strings.
-- The UI states: “Based only on human-approved invoice records. Operational
-  view—not an accounting or VAT return.”
+- The UI states that the register is based only on human-approved CZK invoice
+  records and is an operational view, not an accounting or VAT return.
 
 ## Correction behavior
 
