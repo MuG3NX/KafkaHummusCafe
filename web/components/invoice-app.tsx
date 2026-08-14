@@ -87,7 +87,7 @@ function optionalMinor(value: string, currency: "CZK" | "EUR"): string | null {
   return value.trim() ? parseMoneyToMinorUnits(value, currency).toString() : null;
 }
 
-export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () => void; onOpenShifts: () => void }) {
+export function InvoiceApp({ onOpenRevenue, onOpenShifts, onOpenCosts }: { onOpenRevenue: () => void; onOpenShifts: () => void; onOpenCosts?: () => void }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
@@ -284,7 +284,7 @@ export function InvoiceApp({ onOpenRevenue, onOpenShifts }: { onOpenRevenue: () 
   const approvalEnabled = selected ? canApproveInvoice(selected.status, persistedDraft?.version ?? null, selected.version, formIsDirty(), busy) : false;
 
   return <main className="app-shell">
-    <div className="module-nav module-nav-three"><button onClick={onOpenRevenue}>Revenue</button><button className="active">Invoices</button><button onClick={onOpenShifts}>Shifts</button></div>
+    <div className={`module-nav ${owner && onOpenCosts ? "module-nav-four" : "module-nav-three"}`}><button onClick={onOpenRevenue}>Revenue</button><button className="active">Invoices</button>{owner && onOpenCosts && <button onClick={onOpenCosts}>Costs</button>}<button onClick={onOpenShifts}>Shifts</button></div>
     <header className="top"><div><div className="kicker">KAFKA</div><h1>Invoices</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     <p className="muted">{location.name} · originals stay private</p>
     <div className="banner">● Connected · OCR is a draft until human approval</div>
