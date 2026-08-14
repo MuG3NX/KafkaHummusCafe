@@ -28,9 +28,9 @@ merged and deployed; its final genuine employee acceptance test remains open in
 Issue #8. M3 Invoice Capture and its upload maintenance fix are merged and
 deployed; real invoice acceptance remains open in Issue #10. M4A Approved
 Invoice Cost Register is architecture-approved, merged, and deployed; real
-owner acceptance remains open in Issue #13. No M4B implementation is authorized
-until its cash-register-expense workflow decisions are resolved. See
-`docs/M4_APPROVED_COSTS.md`.
+owner acceptance remains open in Issue #13. M4B1 Cash Expense Evidence Ledger is
+the active authorized draft implementation in Issue #17; M4B2 daily cash-expense
+reconciliation remains later and unimplemented. See `docs/M4_APPROVED_COSTS.md`.
 
 ## Current real workflow
 Revenue is written on paper and later copied manually into Excel. Daily fields are total revenue, card, cash, cash-register expenses, euros, and physical cash handed to the owner. Roughly 3–4 authorized users may submit revenue. Only the owner may correct submitted revenue. There are about 10 employees; shifts are currently tracked in Excel.
