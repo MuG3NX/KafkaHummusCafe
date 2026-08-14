@@ -2,11 +2,12 @@
 
 ## Status
 
-M4A is the active parallel draft implementation. M2 remains open only for one
-genuine employee Start → End acceptance test. M3 is merged and deployed, while
-its production acceptance remains open until Issue #10 and the parked upload
-maintenance PR #12 are completed. M4A must not change those modules or deploy
-before review.
+M4A is architecture-approved, merged, and deployed. Its real owner acceptance
+remains open in Issue #13 until one legitimate approved CZK invoice is verified
+in the issue-date month with matching net, VAT, and gross values. M2 remains
+open only for one genuine employee Start → End acceptance test in Issue #8. M3
+and its upload maintenance fix are deployed, while real invoice acceptance
+remains open in Issue #10. M4B implementation is not yet authorized.
 
 ## Objective
 
