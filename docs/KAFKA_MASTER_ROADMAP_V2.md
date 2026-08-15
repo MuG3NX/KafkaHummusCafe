@@ -20,6 +20,7 @@ GitHub remains the implementation source of truth. Each implementation slice sti
 8. Exception-first owner visibility beats large generic dashboards.
 9. Do not add permanent top-level navigation for every new capability.
 10. Do not build inventory, AI, POS or other large surfaces until the restaurant has a real reason to use them.
+11. Reservations are the deliberate near-term guest-facing exception because the current website booking flow is operationally unreliable.
 
 ---
 
@@ -61,17 +62,29 @@ Individual cash/register movements can be captured as draft evidence, confirmed,
 
 **Urgent parallel infrastructure track: Issue #20.**
 
-The public `kafkahummus.cafe` website must move under owner control for registrar/DNS/source/hosting. This track is deliberately separate from KAFKA OS production data and can proceed in parallel.
+Owner-side Webglobe access to `kafkahummus.cafe` is confirmed. Domain registration is active through 2027-05-05 and DNS is currently served by Webglobe nameservers. The initial takeover keeps registrar and DNS authority at Webglobe, builds and accepts the owner-controlled replacement first, then changes only the required apex/`www` DNS records with rollback values documented. No DNS change is authorized merely by this roadmap.
+
+## W0R — Reservations
+
+**Launch-critical website product slice: Issue #23.**
+
+A valid public reservation submission auto-confirms in V1. The durable database record is authoritative; email is notification. Booking window is 09:00–17:00, every 30 minutes, with at least 1 hour same-day lead time. Online auto-confirmation supports parties up to 6; larger groups are directed to contact the restaurant. Guest confirmation and later change/cancellation emails are part of V1.
 
 ---
 
 # Locked real workflows
 
+## Ownership / access
+
+Alessandro and Mohammed are both owners. Mohammed may see the full KAFKA financial and operational system. Do not invent a restricted kitchen-owner role.
+
+Narrow employee/manager capabilities remain appropriate for specific workflows.
+
 ## Closing today
 
-Trusted closers are currently Sofiya, Dima and Danya.
+Trusted current closers are Sofiya, Dima and Danya, but application authorization must not hard-code their identities. Use a narrow capability such as `can_close_day`; owners can always use trusted owner paths.
 
-At the end of the day they write a paper close containing:
+At the end of the day the closer writes a paper close containing:
 
 - total revenue;
 - card;
@@ -84,7 +97,7 @@ At the end of the day they write a paper close containing:
 
 A photo is sent to Alessandro through Telegram and then manually copied into Excel.
 
-**Important invariant:** physical handover is a human-counted fact. It must not become an automatically derived amount merely because the system can calculate an expected number.
+**Important invariant:** the physical handover values remain explicitly entered/count facts. Even if the system can later calculate an expected reference from cash/expenses/currency rates, that calculation must not silently become authoritative because operational FX practice can change.
 
 ## Cash-register expenses
 
@@ -99,6 +112,8 @@ Real examples include:
 
 The daily close aggregate may therefore contain both documented and undocumented movements.
 
+A later cash-expense record may link to an approved invoice as explanatory evidence. Linking must not create a second expense or double count the same payment.
+
 ## Labor
 
 Non-owner staff are paid hourly. Alessandro and Mohammed are owners and may take owner extras/draws, but those should not be represented as employee hourly wages.
@@ -111,11 +126,18 @@ This is operational wage calculation, not payroll/tax processing.
 
 ## Purchasing / FANY
 
-There are roughly six regular suppliers. FANY is the most important and is ordered through its e-shop.
+There are roughly six regular suppliers. FANY is the important structured workflow and uses its e-shop.
 
-Mohammed owns the kitchen judgment. He checks stock himself, decides quantities himself and currently writes the FANY order for the team to place. This is not a systematic par/inventory workflow and should not be forced into one yet.
+The exact current workflow is:
 
-Other suppliers may be old-school phone/friend relationships managed directly by Mohammed. Their first digital integration can simply be the financial document/invoice path; they do not need to enter a generic purchase-order workflow immediately.
+1. Mohammed checks kitchen/stock himself.
+2. Mohammed decides both products and quantities for the next FANY order.
+3. Mohammed writes the FANY order to the bar/management side.
+4. Bar/management places that order through the FANY e-shop.
+
+M5A digitizes this exact FANY order sheet + placement/history workflow. It is not a generic `needs ordering` board and should not force bar staff to decide quantities Mohammed already decided.
+
+Other suppliers may be old-school phone/friend relationships handled directly by Mohammed without advance reporting to Alessandro. Do not force them into M5A. Their first reliable digital trace may simply be the invoice/receipt when it arrives.
 
 ## Inventory
 
@@ -123,7 +145,7 @@ Full inventory is not currently a meaningful owner pain point. The owners are ph
 
 Therefore:
 
-**supplier ordering before inventory.**
+**FANY ordering before inventory.**
 
 Inventory/par/waste moves forward only if ordering/costing needs make it genuinely useful.
 
@@ -135,31 +157,62 @@ Future exports/integration should target the real POHODA workflow rather than ge
 
 ## Public website
 
-The trusted designer owns the Figma design source. The owner wants the website under direct control and eventually wants public menu content to be manageable from KAFKA OS.
+The trusted designer owns the Figma design source and can provide desktop/mobile frames, assets and typography information.
 
-Public website and internal OS may share deliberately publishable data later, but financial/employee/private records must never become part of the public data boundary.
+The owner controls the Webglobe domain/DNS account. The replacement public site should be implemented from the trusted Figma source with independent hosting/deployment from KAFKA OS. Later, KAFKA OS may deliberately publish safe public menu/opening-hour content, while financial/employee/private records remain completely outside the public boundary.
+
+## Reservations — V1
+
+Reservations are launch-critical alongside the website rebuild.
+
+V1 rules:
+
+- valid public submission is automatically confirmed;
+- required: name, email, phone, date, time, party size;
+- optional note;
+- booking times from 09:00 through 17:00 inclusive;
+- slots every 30 minutes;
+- same-day bookings require at least 1 hour lead time;
+- no simultaneous-capacity or table-allocation engine in V1;
+- parties up to 6 auto-confirm online;
+- parties over 6 are directed to contact the restaurant;
+- every authenticated KAFKA staff member may read reservations;
+- owners and users with narrow `can_manage_reservations` capability may change/cancel;
+- guest receives confirmation email after durable booking;
+- guest receives update/cancellation email when staff changes/cancels the booking;
+- owner receives an initial new-booking email notification;
+- database is authoritative; email is notification;
+- no guest account, deposit, waitlist, CRM or table optimizer in V1.
+
+Reservation clock time uses Europe/Prague restaurant-local time and is not the financial 05:00 service-day accounting rule.
 
 ---
 
 # Execution roadmap
 
-## W0 — Website takeover — urgent parallel track
+## W0 + W0R — Website takeover + Reservations — urgent parallel track
 
-Issue: #20
+Issues: #20 and #23
 
 ### Goal
 
-Take full owner control of registrar/DNS/source/hosting and reproduce the trusted Figma design with a maintainable GitHub/Vercel deployment.
+Take full owner control of the public site while keeping the now-owner-controlled Webglobe domain/DNS stable, reproduce the trusted Figma design with maintainable GitHub hosting, and replace the unreliable reservation flow with owner-controlled durable bookings and email.
 
 ### First slice
 
-1. Recover registrar ownership/access and inventory current DNS.
-2. Preserve existing public pages/content/legal/menu/SEO/redirect evidence.
-3. Obtain Figma desktop/mobile frames + assets + typography information.
-4. Build the replacement public site in its own deploy root without refactoring KAFKA OS.
-5. Preview/visual acceptance.
-6. DNS/custom-domain cutover with rollback plan.
-7. Later map `app.kafkahummus.cafe` to KAFKA OS if useful.
+1. Keep current Webglobe domain and nameservers unchanged.
+2. Inventory/export the complete DNS zone and existing hosting targets; document rollback values.
+3. Preserve current public pages/content/legal/menu/SEO/redirect/reservation evidence.
+4. Obtain Figma desktop/mobile frames + assets + typography information.
+5. Build the replacement public site in its own deploy root without refactoring KAFKA OS.
+6. Implement the narrow reservation server path and internal staff list from Issue #23.
+7. Verify real guest confirmation/update/cancellation email and owner notification.
+8. Preview/visual acceptance by owner + designer.
+9. Only then update required Webglobe apex/`www` DNS records.
+10. Verify HTTPS, apex/`www`, Czech/English routes, menus, legal links, reservation flow, email, SEO/redirects.
+11. Stabilize with documented rollback values.
+12. Cancel obsolete agency hosting only after stable cutover and dependency audit.
+13. Later map `app.kafkahummus.cafe` to KAFKA OS if useful.
 
 ### Later website integration
 
@@ -167,7 +220,7 @@ Allow deliberately public data such as menu item name/description/price, availab
 
 ### Excluded now
 
-Guest accounts, online ordering, loyalty, payments, public CRM, complex CMS and POS.
+Guest accounts, online ordering, loyalty, payments, public CRM/marketing automation, complex CMS, table allocation, reservation marketplace and POS.
 
 ---
 
@@ -207,7 +260,7 @@ Show:
 - confirmed-evidence total;
 - exact difference.
 
-A mismatch should initially be non-blocking. The likely workflow is:
+A mismatch is non-blocking in the first version. The workflow may:
 
 - add/correct missing evidence; or
 - revise the daily close through the existing audited owner correction path when the aggregate itself is wrong; or
@@ -250,7 +303,13 @@ The close should represent the real paper workflow, including:
 - closer identity;
 - DB close timestamp.
 
-Physical handover remains explicitly counted, never inferred.
+Physical handover remains explicitly entered/count truth, never an automatically derived authority.
+
+### Authorization
+
+- owner: trusted close/correction authority;
+- non-owner closer: narrow `can_close_day` capability;
+- do not hard-code Sofiya/Dima/Danya.
 
 ### Readiness view
 
@@ -265,21 +324,22 @@ Closing should surface, but not necessarily hard-block on:
 
 ### Service Day home
 
-This is the point where the UX should begin evolving from module tabs into an operating-day dashboard:
+This is the point where the UX should evolve from module tabs into an operating-day dashboard:
 
 - Revenue status;
 - team/working-now summary;
 - cash-expense state;
 - invoice review state;
+- reservation state;
 - closing readiness;
-- future ordering state;
+- future FANY ordering state;
 - exceptions needing attention.
 
 Do not build a generic BI dashboard. Show the few things the owner/closer needs to act on.
 
 ### Manager handoff
 
-A very small manager log belongs naturally here:
+A small manager log belongs naturally here:
 
 - service-day note;
 - supplier problem;
@@ -329,13 +389,13 @@ Taxes, official payroll, payslips, owner draws, benefits, tips unless separately
 
 ### Goal
 
-Digitize the real Mohammed workflow without inventing full inventory.
+Digitize the real Mohammed→bar/management FANY workflow without inventing full inventory.
 
 ### Real workflow
 
-Mohammed decides both product and quantity. Therefore the MVP is not a generic `needs item` queue requiring someone else to decide quantity.
+Mohammed decides both product and quantity.
 
-It should behave closer to:
+Example:
 
 **FANY Order — tonight**
 
@@ -343,24 +403,24 @@ It should behave closer to:
 - Chickpeas × 6
 - Olive oil × 2
 
-Added/changed by Mohammed.
+Prepared/changed by Mohammed.
 
-Then an authorized owner/manager places the order in the existing FANY e-shop and marks the draft ordered.
+Then bar/management places the order in the existing FANY e-shop and marks the draft ordered.
 
 ### Core behavior
 
-- reusable FANY product list / usual items;
+- reusable FANY product/usual-item list;
 - quantity-first mobile entry;
 - draft for current next order;
 - actor/time history;
 - mark ordered with actor/time;
 - previous-order history;
-- copy previous/usual order as a starting point if it proves useful;
-- no automatic submission until a later FANY adapter is deliberately authorized.
+- copy previous/usual order as a starting point if useful;
+- no automatic FANY submission until a later adapter is deliberately authorized.
 
 ### Other suppliers
 
-Do not force Mohammed's phone/friend suppliers into M5A. They can remain handled directly while their receipts/invoices enter the financial document flow.
+Do not force Mohammed's phone/friend suppliers into M5A. They can remain handled directly while receipts/invoices enter the financial document flow.
 
 ---
 
@@ -398,7 +458,7 @@ Potential inputs:
 - owner-controlled invoice email inbox/forwarding;
 - later supplier-specific imports if useful.
 
-All routes still feed the same M3 original-document + draft + human-approval model.
+All routes feed the same M3 original-document + draft + human-approval model.
 
 Do not create a second invoice truth model.
 
@@ -522,33 +582,35 @@ Resolve Issue #15. As KAFKA OS accumulates financial, labor and operational evid
 
 # Current priority order
 
-1. **W0 website takeover** in parallel — recover domain authority + build from Figma.
+1. **W0 website takeover + W0R reservations** in parallel, parked until the owner explicitly resumes the public-site build; no DNS changes before preview acceptance.
 2. **M4B1 production rollout** when secure Supabase production access is available.
 3. Close real acceptance gates #8/#10/#13 opportunistically.
 4. **M4B2 cash-expense comparison/acknowledgment.**
 5. **M4C digital closing + Service Day owner hub.**
 6. **M2B labor hours/wages.**
-7. **M5A FANY order draft/history.**
-8. **M5B supplier/order/receiving** only where useful.
-9. **M3B invoice inbox/document intake improvements.**
-10. **M6A POHODA/accountant export.**
-11. Supplier price history → recipe costing.
+7. **M5A FANY order sheet/history.**
+8. **M5B supplier/product/order/receiving** only if real usage justifies it.
+9. **M3B invoice inbox / emailed PDF intake.**
+10. **M6A POHODA/accountant package.**
+11. Supplier price history + recipe/menu costing.
 12. Scheduling.
-13. Inventory/par/waste when real pain appears.
-14. Public menu publishing from KAFKA OS.
-15. Much later POS/KDS/payments.
+13. Inventory/par/waste only when it becomes a real problem.
+14. Public menu/opening-hour publishing from KAFKA OS.
+15. Much later POS/KDS/payments/table stack.
 
 ---
 
-# Non-goals for the foreseeable roadmap
+# Anti-drift rule
 
-- generic SaaS onboarding/multi-tenant productization;
-- guest ordering/customer app;
-- loyalty/CRM;
-- reservation-platform product work;
-- deep HR/payroll;
-- comprehensive inventory before KAFKA needs it;
-- AI chatbot over incomplete data;
-- accounting engine replacing POHODA;
-- automatic supplier ordering without human approval;
-- POS/KDS before back-office foundations are accepted.
+A roadmap item is not implementation authorization by itself.
+
+Every new code slice still needs:
+
+1. exact current GitHub verification;
+2. scoped Issue/product contract;
+3. focused branch;
+4. migration/RLS/tests where applicable;
+5. CI + preview;
+6. architecture review;
+7. controlled rollout;
+8. real workflow acceptance before the issue is considered complete.
