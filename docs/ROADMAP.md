@@ -12,7 +12,7 @@ This file remains the compact milestone index.
 - **M4A Approved Invoice Costs:** production-deployed; owner acceptance remains open in Issue #13.
 - **M4B1 Cash Expense Evidence Ledger:** architecture-approved in draft PR #18 at exact head `868d12528b9dff9e492edd6ed7a5c2152b77ddcb`; production rollout pending.
 - **W0 Public Website Takeover:** owner Webglobe/domain/DNS access confirmed in Issue #20; build parked until owner explicitly resumes it.
-- **W0R Reservations:** V1 workflow locked in Issue #23; launch-critical with the rebuilt public website.
+- **W0R Reservations:** V1 workflow fully locked in Issue #23; launch-critical with the rebuilt public website.
 - **M4B2 and later:** not implemented.
 
 ## Current priority order
