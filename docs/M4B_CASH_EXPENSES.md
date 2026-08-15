@@ -60,11 +60,22 @@ Revenue, Shifts, Invoices, or M4A.
    clears confirmation, and returns the entry to `draft`.
 8. The corrected version must be explicitly confirmed again.
 
-Capture accepts a client-generated UUID. A retry with the same UUID and exact
-original normalized payload returns the existing version-1 record; conflicting
-UUID reuse is rejected. Confirmation retries of the exact already-confirmed
-version do not append duplicate events. Stale confirmations and corrections are
-rejected.
+## Retry and recovery boundary
+
+Capture accepts a client-generated UUID. The browser retains that UUID and the
+normalized capture payload until the result is known. If transport fails after
+an uncertain response, the retry uses the exact same capture identity and
+payload; the database returns the existing version-1 record when the first
+attempt already committed and rejects conflicting UUID reuse.
+
+A known committed capture, confirmation, or correction remains successful even
+if the following list/audit refresh fails. Refresh failure is reported
+separately and never changes the verdict of the financial write. Confirmation
+retries of the exact already-confirmed version do not append duplicate events.
+After an uncertain correction result, the client reloads persisted state and
+requires the user to reopen the evidence before another correction attempt.
+Stale confirmations and corrections remain rejected. No offline mutation queue
+is introduced.
 
 ## Database model
 
