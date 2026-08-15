@@ -1,10 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   canConfirmCashExpense,
   cashExpenseAuditLabel,
   cashExpenseTotals,
   costsSectionsForRole,
+  createOrReuseCashExpenseCaptureAttempt,
   formatCashExpenseServiceDay,
+  runCashExpenseWrite,
   statusAfterCashExpenseCorrection,
   validateCashExpenseDraft,
   type CashExpenseEntry
@@ -98,5 +100,53 @@ describe("cash expense domain", () => {
       reason: null,
       created_at: "2026-08-14T12:00:00Z"
     })).toBe("Re-confirmed");
+  });
+
+  it("creates one normalized capture attempt identity", () => {
+    const makeId = vi.fn(() => "attempt-1");
+    expect(createOrReuseCashExpenseCaptureAttempt(null, {
+      amountMinor: 1250n,
+      description: "Market purchase",
+      businessDate: "2026-08-14"
+    }, makeId)).toEqual({
+      id: "attempt-1",
+      amountMinor: "1250",
+      description: "Market purchase",
+      businessDate: "2026-08-14"
+    });
+    expect(makeId).toHaveBeenCalledTimes(1);
+  });
+
+  it("reuses the exact capture UUID and payload after an ambiguous result", () => {
+    const makeId = vi.fn(() => "new-id-that-must-not-be-used");
+    const existing = {
+      id: "attempt-1",
+      amountMinor: "1250",
+      description: "Market purchase",
+      businessDate: "2026-08-14"
+    };
+    expect(createOrReuseCashExpenseCaptureAttempt(existing, {
+      amountMinor: 9999n,
+      description: "Changed local form",
+      businessDate: "2026-08-13"
+    }, makeId)).toBe(existing);
+    expect(makeId).not.toHaveBeenCalled();
+  });
+
+  it("keeps a known committed write successful when refresh fails", async () => {
+    const persist = vi.fn(async () => ({ id: "saved" }));
+    const refresh = vi.fn(async () => { throw new Error("refresh unavailable"); });
+    const result = await runCashExpenseWrite(persist, refresh);
+    expect(result.saved).toEqual({ id: "saved" });
+    expect(result.refreshError?.message).toBe("refresh unavailable");
+    expect(persist).toHaveBeenCalledTimes(1);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not run refresh when the financial write itself fails", async () => {
+    const persist = vi.fn(async () => { throw new Error("write failed"); });
+    const refresh = vi.fn(async () => undefined);
+    await expect(runCashExpenseWrite(persist, refresh)).rejects.toThrow("write failed");
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
