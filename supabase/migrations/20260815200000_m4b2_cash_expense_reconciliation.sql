@@ -81,7 +81,7 @@ begin
       count(*) filter (where entry.status = 'confirmed')::integer as confirmed_count,
       count(*) filter (where entry.status = 'draft')::integer as draft_count,
       encode(
-        digest(
+        extensions.digest(
           coalesce(
             string_agg(
               entry.id::text || ':' || entry.version::text || ':' || entry.amount_czk_minor::text,
@@ -252,7 +252,7 @@ begin
   select
     coalesce(sum(entry.amount_czk_minor) filter (where entry.status = 'confirmed'), 0)::bigint,
     encode(
-      digest(
+      extensions.digest(
         coalesce(
           string_agg(
             entry.id::text || ':' || entry.version::text || ':' || entry.amount_czk_minor::text,
