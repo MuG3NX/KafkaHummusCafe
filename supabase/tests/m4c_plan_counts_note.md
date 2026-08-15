@@ -1,0 +1,1 @@
+Temporary development note: before final M4C architecture approval, update pgTAP plans only: `m4c_closing.sql` 43 → 47 and `m4c_closure_corrections.sql` 22 → 23, then delete this note. Do not weaken or remove assertions.
