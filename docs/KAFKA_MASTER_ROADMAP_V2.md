@@ -62,7 +62,9 @@ Individual cash/register movements can be captured as draft evidence, confirmed,
 
 **Urgent parallel infrastructure track: Issue #20.**
 
-Owner-side Webglobe access to `kafkahummus.cafe` is confirmed. Domain registration is active through 2027-05-05 and DNS is currently served by Webglobe nameservers. The initial takeover keeps registrar and DNS authority at Webglobe, builds and accepts the owner-controlled replacement first, then changes only the required apex/`www` DNS records with rollback values documented. No DNS change is authorized merely by this roadmap.
+Owner-side Webglobe access to `kafkahummus.cafe` is confirmed. Domain registration is active through 2027-05-05 and DNS is currently served by Webglobe nameservers. Initial takeover keeps registrar and DNS authority at Webglobe, builds and accepts the owner-controlled replacement first, then changes only required apex/`www` DNS records with rollback values documented. No DNS change is authorized merely by this roadmap.
+
+The website implementation is intentionally parked until the owner explicitly resumes it. GitHub Issues #20/#23 preserve the full plan so it will not be forgotten.
 
 ## W0R — Reservations
 
@@ -84,20 +86,9 @@ Narrow employee/manager capabilities remain appropriate for specific workflows.
 
 Trusted current closers are Sofiya, Dima and Danya, but application authorization must not hard-code their identities. Use a narrow capability such as `can_close_day`; owners can always use trusted owner paths.
 
-At the end of the day the closer writes a paper close containing:
+At the end of the day the closer writes a paper close containing total revenue, card, cash, cash-register expenses, EUR, USD, GBP and physical CZK/EUR/USD/GBP actually handed to the owner after register expenses. A photo is sent to Alessandro through Telegram and then manually copied into Excel.
 
-- total revenue;
-- card;
-- cash;
-- cash-register expenses;
-- EUR;
-- USD;
-- GBP;
-- physical cash actually handed to the owner after register expenses, including physical CZK/EUR/USD/GBP.
-
-A photo is sent to Alessandro through Telegram and then manually copied into Excel.
-
-**Important invariant:** the physical handover values remain explicitly entered/count facts. Even if the system can later calculate an expected reference from cash/expenses/currency rates, that calculation must not silently become authoritative because operational FX practice can change.
+**Important invariant:** physical handover values remain explicit entered/count facts. Even if the system can later calculate an expected reference from cash/expenses/currency rates, that calculation must not silently become authoritative because operational FX practice can change.
 
 ## Cash-register expenses
 
@@ -179,71 +170,29 @@ Reservation clock time uses Europe/Prague restaurant-local time and is not the f
 
 Issues: #20 and #23
 
-### Goal
+This track is parked until the owner explicitly resumes it. When resumed: keep current Webglobe nameservers unchanged initially; inventory/export the DNS zone and rollback values; preserve current public/SEO/legal/reservation evidence; obtain Figma desktop/mobile frames/assets/type; build the replacement in its own deploy root; implement the narrow reservation server path and staff list; verify real confirmation/update/cancellation email + owner notification; obtain owner/designer visual acceptance; only then update required Webglobe apex/`www` records; verify HTTPS/routes/menu/legal/reservations/SEO; stabilize; cancel obsolete agency hosting only after dependency audit.
 
-Take full owner control of the public site while keeping the now-owner-controlled Webglobe domain/DNS stable, reproduce the trusted Figma design with maintainable GitHub hosting, and replace the unreliable reservation flow with owner-controlled durable bookings and email.
-
-### First slice
-
-1. Keep current Webglobe domain and nameservers unchanged.
-2. Inventory/export the complete DNS zone and existing hosting targets; document rollback values.
-3. Preserve current public pages/content/legal/menu/SEO/redirect/reservation evidence.
-4. Obtain Figma desktop/mobile frames + assets + typography information.
-5. Build the replacement public site in its own deploy root without refactoring KAFKA OS.
-6. Implement the narrow reservation server path and internal staff list from Issue #23.
-7. Verify real guest confirmation/update/cancellation email and owner notification.
-8. Preview/visual acceptance by owner + designer.
-9. Only then update required Webglobe apex/`www` DNS records.
-10. Verify HTTPS, apex/`www`, Czech/English routes, menus, legal links, reservation flow, email, SEO/redirects.
-11. Stabilize with documented rollback values.
-12. Cancel obsolete agency hosting only after stable cutover and dependency audit.
-13. Later map `app.kafkahummus.cafe` to KAFKA OS if useful.
-
-### Later website integration
-
-Allow deliberately public data such as menu item name/description/price, availability and opening/holiday hours to publish from KAFKA OS.
-
-### Excluded now
-
-Guest accounts, online ordering, loyalty, payments, public CRM/marketing automation, complex CMS, table allocation, reservation marketplace and POS.
+Later, safe public menu/opening-hour content may publish from KAFKA OS. Guest accounts, online ordering, loyalty, payments, complex CMS, table allocation, reservation marketplace and POS remain excluded now.
 
 ---
 
 ## M4B1 — Production rollout
 
-### Goal
-
-Ship the architecture-approved Cash Expense Evidence Ledger without changing its model.
-
-### Sequence
-
-1. Production migration preflight.
-2. Apply only the reviewed M4B1 migration before frontend merge.
-3. Verify RLS/RPC/non-interference.
-4. Merge exact approved PR #18 head.
-5. Verify Vercel Production.
-6. One legitimate owner/manager cash-expense capture → confirm → optional genuine correction only if needed.
-7. Keep Issue #17 open until persisted production evidence passes.
+Ship the architecture-approved Cash Expense Evidence Ledger without changing its model: production migration preflight; apply only reviewed M4B1 migration before frontend merge; verify RLS/RPC/non-interference; merge exact approved PR #18 head; verify Vercel Production; perform one legitimate owner/manager cash-expense capture→confirm; keep Issue #17 open until persisted production evidence passes.
 
 ---
 
 ## M4B2 — Daily cash-expense reconciliation
 
-Compare two independent truths for one location/service day: the M1 `cash_register_expenses_czk_minor` aggregate and the sum of confirmed M4B1 evidence. A mismatch is non-blocking initially: add/correct evidence, revise the audited daily aggregate when it is wrong, or acknowledge a residual difference with reason. Do not silently rewrite either source.
-
-A later cash-expense→approved-invoice link may explain a payment, but must not create another expense or double-count it.
+Compare two independent truths for one location/service day: the M1 `cash_register_expenses_czk_minor` aggregate and sum of confirmed M4B1 evidence. A mismatch is non-blocking initially: add/correct evidence, revise the audited daily aggregate if wrong, or acknowledge residual difference with reason. Do not silently rewrite either source. A later invoice link may explain a payment but must not create/double-count an expense.
 
 ---
 
 ## M4C — Digital closing + Service Day operating hub
 
-Replace paper → Telegram photo → owner Excel entry with one trusted close in KAFKA OS.
+Replace paper→Telegram photo→owner Excel with one trusted close. Closing data includes total/card/cash/register expenses, EUR/USD/GBP, physical CZK/EUR/USD/GBP handed over, closing note, closer identity and DB timestamp. Physical handover remains explicit entered/count truth. Owners have trusted authority; non-owner closers receive `can_close_day`.
 
-Closing data includes total/card/cash/register expenses, EUR/USD/GBP, physical CZK/EUR/USD/GBP handed over, closing note, closer identity and DB close timestamp. Physical handover remains explicit entered/count truth.
-
-Authorization: owners have trusted close/correction authority; non-owner closers receive `can_close_day`; identities are not hard-coded.
-
-The Service Day home should evolve toward an exception-first operating dashboard showing Revenue, working team, cash expenses, invoice review, reservations, closing readiness, FANY order state and follow-ups. Add a small manager handoff log, not a generic chat system.
+The Service Day home evolves toward an exception-first operating dashboard showing Revenue, team, cash-expense state, invoice review, reservations, closing readiness, FANY order state and follow-ups. Include a small manager handoff log, not a chat platform.
 
 ---
 
