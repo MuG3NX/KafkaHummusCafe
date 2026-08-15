@@ -117,6 +117,7 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices, onOpenCosts }: { onOp
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [view, setView] = useState<"today" | "history">("today");
   const [owner, setOwner] = useState(false);
+  const [costsAccess, setCostsAccess] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [editing, setEditing] = useState<RevenueEntry | null>(null);
@@ -136,6 +137,7 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices, onOpenCosts }: { onOp
     const membershipResult = await supabase.from("restaurant_memberships").select("restaurant_id, role").eq("user_id", currentUser.id).limit(1).maybeSingle();
     if (membershipResult.error || !membershipResult.data) { setError(membershipResult.error?.message ?? "Your account is not connected to a restaurant yet."); setLoading(false); return; }
     setOwner(membershipResult.data.role === "owner");
+    setCostsAccess(membershipResult.data.role === "owner" || membershipResult.data.role === "manager");
     const locationResult = await supabase.from("locations").select("id, name, timezone").eq("restaurant_id", membershipResult.data.restaurant_id).limit(1).single();
     if (locationResult.error || !locationResult.data) { setError(locationResult.error?.message ?? "No restaurant location is configured."); setLoading(false); return; }
     const currentLocation = locationResult.data as Location; setLocation(currentLocation);
@@ -185,7 +187,7 @@ export function RevenueApp({ onOpenShifts, onOpenInvoices, onOpenCosts }: { onOp
   if (!userId) return <AuthCard onReady={() => { void loadWorkspace(); }} />;
   if (loading) return <main className="app-shell"><div className="kicker">KAFKA</div><h1>Today</h1><p className="muted">Loading the service day…</p></main>;
   const submitted = Boolean(entry);
-  return <main className="app-shell">{onOpenShifts && <div className={`module-nav ${owner && onOpenCosts ? "module-nav-four" : onOpenInvoices ? "module-nav-three" : ""}`}><button className="active">Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}{owner && onOpenCosts && <button onClick={onOpenCosts}>Costs</button>}<button onClick={onOpenShifts}>Shifts</button></div>}<header className="top"><div><div className="kicker">KAFKA</div><h1>{view === "today" ? "Today" : "History"}</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
+  return <main className="app-shell">{onOpenShifts && <div className={`module-nav ${costsAccess && onOpenCosts ? "module-nav-four" : onOpenInvoices ? "module-nav-three" : ""}`}><button className="active">Revenue</button>{onOpenInvoices && <button onClick={onOpenInvoices}>Invoices</button>}{costsAccess && onOpenCosts && <button onClick={onOpenCosts}>Costs</button>}<button onClick={onOpenShifts}>Shifts</button></div>}<header className="top"><div><div className="kicker">KAFKA</div><h1>{view === "today" ? "Today" : "History"}</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     {location && <p className="muted">{location.name} · {businessDate || businessDateForTimezone(new Date(), location.timezone)}</p>}
     <div className={`banner ${typeof navigator !== "undefined" && !navigator.onLine ? "offline" : ""}`}>{typeof navigator !== "undefined" && !navigator.onLine ? "● Offline · financial submission unavailable" : "● Connected · saved to the shared database"}</div>
     {error && <p className="error" role="alert">{error}</p>}

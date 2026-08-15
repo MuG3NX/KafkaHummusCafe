@@ -82,4 +82,19 @@ textarea { width: 100%; resize: vertical; min-height: 82px; border: 1px solid va
 .cost-row-head small { color: var(--muted); margin-top: 5px; }
 .cost-row-head > b { text-align: right; overflow-wrap: anywhere; }
 .cost-row-money { display: flex; flex-wrap: wrap; gap: 7px 12px; color: var(--muted); font-size: 12px; margin-top: 12px; }
+.costs-section-nav { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 5px; margin: 14px 0 0; background: #e5e1d8; border-radius: 17px; }
+.costs-section-nav button { min-height: 46px; border: 0; border-radius: 13px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 900; }
+.costs-section-nav button.active { background: var(--card); color: var(--ink); box-shadow: 0 8px 24px #1d1b1614; }
+.compact-card { padding-top: 12px; padding-bottom: 12px; }
+.cash-expense-row { border-top: 1px solid var(--line); padding: 20px 0; }
+.cash-expense-row:first-of-type { border-top: 0; }
+.cash-expense-row .cost-row-head strong { margin-top: 8px; white-space: normal; }
+.status-pill { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 9px; border-radius: 999px; background: #ece8df; color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .07em; }
+.status-pill.confirmed { background: var(--lime); color: var(--ink); }
+.cash-meta { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 14px 0; color: var(--muted); font-size: 12px; }
+.cash-meta span:nth-child(even) { text-align: right; }
+.audit-history { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+.audit-history summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 800; }
+.audit-event { display: grid; gap: 4px; padding: 11px 0; border-top: 1px solid var(--line); }
+.audit-event span, .audit-event small { color: var(--muted); font-size: 12px; }
 @media (min-width: 700px) { .app-shell { padding-top: 48px; } }
