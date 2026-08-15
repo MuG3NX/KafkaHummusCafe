@@ -35,6 +35,13 @@ export type CashExpenseDraft = {
   businessDate: string;
 };
 
+export type CashExpenseCaptureAttempt = {
+  id: string;
+  amountMinor: string;
+  description: string;
+  businessDate: string;
+};
+
 export type CostsSection = "approved" | "cash";
 
 export function costsSectionsForRole(role: string): CostsSection[] {
@@ -64,6 +71,36 @@ export function validateCashExpenseDraft(
   const amountMinor = parseMoneyToMinorUnits(draft.amount, "CZK");
   if (amountMinor <= 0n) throw new Error("Cash expense amount must be greater than zero.");
   return { amountMinor, description, businessDate: draft.businessDate };
+}
+
+export function createOrReuseCashExpenseCaptureAttempt(
+  existing: CashExpenseCaptureAttempt | null,
+  parsed: { amountMinor: bigint; description: string; businessDate: string },
+  makeId: () => string
+): CashExpenseCaptureAttempt {
+  if (existing) return existing;
+  return {
+    id: makeId(),
+    amountMinor: parsed.amountMinor.toString(),
+    description: parsed.description,
+    businessDate: parsed.businessDate
+  };
+}
+
+export async function runCashExpenseWrite<T>(
+  persist: () => Promise<T>,
+  refresh: () => Promise<void>
+): Promise<{ saved: T; refreshError: Error | null }> {
+  const saved = await persist();
+  try {
+    await refresh();
+    return { saved, refreshError: null };
+  } catch (caught) {
+    return {
+      saved,
+      refreshError: caught instanceof Error ? caught : new Error("The persisted state could not be refreshed.")
+    };
+  }
 }
 
 export function cashExpenseTotals(entries: CashExpenseEntry[]): {
