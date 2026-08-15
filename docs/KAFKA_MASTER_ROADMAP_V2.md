@@ -582,7 +582,7 @@ Resolve Issue #15. As KAFKA OS accumulates financial, labor and operational evid
 
 # Current priority order
 
-1. **W0 website takeover + W0R reservations** in parallel, parked until the owner explicitly resumes the public-site build; no DNS changes before preview acceptance.
+1. **W0 website takeover + W0R reservations** stay prominent but parked until the owner explicitly resumes the public-site build; no DNS changes before preview acceptance.
 2. **M4B1 production rollout** when secure Supabase production access is available.
 3. Close real acceptance gates #8/#10/#13 opportunistically.
 4. **M4B2 cash-expense comparison/acknowledgment.**
