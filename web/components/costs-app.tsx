@@ -7,9 +7,12 @@ import {
   cashExpenseAuditLabel,
   cashExpenseTotals,
   costsSectionsForRole,
+  createOrReuseCashExpenseCaptureAttempt,
   formatCashExpenseServiceDay,
+  runCashExpenseWrite,
   validateCashExpenseDraft,
   type CashExpenseAuditEvent,
+  type CashExpenseCaptureAttempt,
   type CashExpenseDraft,
   type CashExpenseEntry,
   type CostsSection
@@ -59,12 +62,14 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   const [auditEvents, setAuditEvents] = useState<CashExpenseAuditEvent[]>([]);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const [capture, setCapture] = useState<CashExpenseDraft>(EMPTY_CAPTURE);
+  const [pendingCapture, setPendingCapture] = useState<CashExpenseCaptureAttempt | null>(null);
   const [editing, setEditing] = useState<CashExpenseEntry | null>(null);
   const [correction, setCorrection] = useState<CorrectionDraft>(EMPTY_CORRECTION);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const owner = role === "owner";
   const manager = role === "manager";
@@ -128,7 +133,7 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   async function loadWorkspace() {
     if (!supabase) { setLoading(false); return; }
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setNotice("");
     const { data: sessionData } = await supabase.auth.getSession();
     const currentUser = sessionData.session?.user;
     if (!currentUser) { setUserId(null); setLoading(false); return; }
@@ -187,9 +192,10 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   useEffect(() => { void loadWorkspace(); if (!supabase) return; const { data } = supabase.auth.onAuthStateChange(() => { void loadWorkspace(); }); return () => data.subscription.unsubscribe(); }, [supabase]);
 
   async function changeLocation(locationId: string) {
+    if (pendingCapture) { setError("Finish or reload the pending capture before changing location."); return; }
     const target = locations.find((candidate) => candidate.id === locationId);
     if (!target) return;
-    setLoading(true); setError(""); setLocation(target); setEditing(null);
+    setLoading(true); setError(""); setNotice(""); setLocation(target); setEditing(null);
     try {
       const businessDate = await currentDateFor(target);
       const selectedMonth = month || currentMonthForTimezone(new Date(), target.timezone);
@@ -207,7 +213,7 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   async function changeMonth(nextMonth: string) {
     setMonth(nextMonth);
     if (!location || !nextMonth || !owner) return;
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setNotice("");
     try { await loadApprovedCosts(location, nextMonth); }
     catch (caught) { setRows([]); setError(caught instanceof Error ? caught.message : "Approved invoice costs could not be loaded."); }
     setLoading(false);
@@ -215,10 +221,11 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   async function changeBusinessDate(nextDate: string) {
     if (!location || !nextDate) return;
+    if (pendingCapture) { setError("Finish or reload the pending capture before changing service day."); return; }
     if (nextDate > currentBusinessDate) { setError("Cash expenses cannot use a future service day."); return; }
     setSelectedBusinessDate(nextDate);
     setCapture((current) => ({ ...current, businessDate: nextDate }));
-    setEditing(null); setLoading(true); setError("");
+    setEditing(null); setLoading(true); setError(""); setNotice("");
     try { await loadCashExpenses(location, nextDate); }
     catch (caught) { setCashRows([]); setError(caught instanceof Error ? caught.message : "Cash expenses could not be loaded."); }
     setLoading(false);
@@ -226,40 +233,72 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   async function captureExpense() {
     if (!supabase || !location || !navigator.onLine) { setError("Cash-expense capture needs a live connection and was not saved."); return; }
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setNotice("");
+    let attempt = pendingCapture;
     try {
       const parsed = validateCashExpenseDraft(capture, currentBusinessDate);
-      const result = await supabase.rpc("capture_cash_expense", {
-        p_expense_id: crypto.randomUUID(),
-        p_location_id: location.id,
-        p_business_date: parsed.businessDate,
-        p_amount_czk_minor: parsed.amountMinor.toString(),
-        p_description: parsed.description
-      });
-      if (result.error) throw result.error;
-      const saved = firstRpcRow(result.data as CashExpenseEntry[] | CashExpenseEntry | null);
-      if (!saved) throw new Error("The captured expense was not returned.");
+      attempt = createOrReuseCashExpenseCaptureAttempt(pendingCapture, parsed, () => crypto.randomUUID());
+      setPendingCapture(attempt);
+      const outcome = await runCashExpenseWrite(
+        async () => {
+          const result = await supabase.rpc("capture_cash_expense", {
+            p_expense_id: attempt!.id,
+            p_location_id: location.id,
+            p_business_date: attempt!.businessDate,
+            p_amount_czk_minor: attempt!.amountMinor,
+            p_description: attempt!.description
+          });
+          if (result.error) throw result.error;
+          const saved = firstRpcRow(result.data as CashExpenseEntry[] | CashExpenseEntry | null);
+          if (!saved) throw new Error("The captured expense was not returned.");
+          return saved;
+        },
+        () => loadCashExpenses(location, attempt!.businessDate)
+      );
+      setPendingCapture(null);
       setCapture({ amount: "", description: "", businessDate: selectedBusinessDate });
-      await loadCashExpenses(location, selectedBusinessDate);
+      setNotice(outcome.refreshError
+        ? "Draft captured. The list could not refresh; reload before making further changes."
+        : "Draft captured.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Cash expense could not be captured.");
+      if (attempt) setPendingCapture(attempt);
+      const detail = caught instanceof Error ? caught.message : "The capture response was unavailable.";
+      setError(`Capture could not be confirmed. Retry will reuse the same capture identity so the database cannot create a duplicate. ${detail}`);
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function confirmExpense(entry: CashExpenseEntry) {
     if (!supabase || !location || !navigator.onLine) { setError("Confirmation needs a live connection and was not saved."); return; }
-    setBusy(true); setError("");
-    const result = await supabase.rpc("confirm_cash_expense", {
-      p_expense_id: entry.id,
-      p_expected_version: entry.version
-    });
-    if (result.error) setError(result.error.message);
-    else await loadCashExpenses(location, selectedBusinessDate);
-    setBusy(false);
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const outcome = await runCashExpenseWrite(
+        async () => {
+          const result = await supabase.rpc("confirm_cash_expense", {
+            p_expense_id: entry.id,
+            p_expected_version: entry.version
+          });
+          if (result.error) throw result.error;
+          const saved = firstRpcRow(result.data as CashExpenseEntry[] | CashExpenseEntry | null);
+          if (!saved) throw new Error("The confirmed expense was not returned.");
+          return saved;
+        },
+        () => loadCashExpenses(location, selectedBusinessDate)
+      );
+      setNotice(outcome.refreshError
+        ? "Expense confirmed. The list could not refresh; reload before making further changes."
+        : "Expense confirmed.");
+    } catch (caught) {
+      try { await loadCashExpenses(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
+      setError("Confirmation could not be confirmed. Current persisted state was reloaded where possible; review the expense before retrying.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function startCorrection(entry: CashExpenseEntry) {
+    setError(""); setNotice("");
     setEditing(entry);
     setCorrection({
       amount: amountMinorToInput(entry.amount_czk_minor),
@@ -271,32 +310,47 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   async function saveCorrection() {
     if (!supabase || !location || !editing || !navigator.onLine) { setError("Correction needs a live connection and was not saved."); return; }
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setNotice("");
     try {
       const parsed = validateCashExpenseDraft(correction, currentBusinessDate);
       if (!correction.reason.trim()) throw new Error("Enter a correction reason.");
-      const result = await supabase.rpc("correct_cash_expense", {
-        p_expense_id: editing.id,
-        p_expected_version: editing.version,
-        p_business_date: parsed.businessDate,
-        p_amount_czk_minor: parsed.amountMinor.toString(),
-        p_description: parsed.description,
-        p_reason: correction.reason
-      });
-      if (result.error) throw result.error;
       const movedToAnotherDay = parsed.businessDate !== selectedBusinessDate;
+      const outcome = await runCashExpenseWrite(
+        async () => {
+          const result = await supabase.rpc("correct_cash_expense", {
+            p_expense_id: editing.id,
+            p_expected_version: editing.version,
+            p_business_date: parsed.businessDate,
+            p_amount_czk_minor: parsed.amountMinor.toString(),
+            p_description: parsed.description,
+            p_reason: correction.reason
+          });
+          if (result.error) throw result.error;
+          const saved = firstRpcRow(result.data as CashExpenseEntry[] | CashExpenseEntry | null);
+          if (!saved) throw new Error("The corrected expense was not returned.");
+          return saved;
+        },
+        () => loadCashExpenses(location, selectedBusinessDate)
+      );
       setEditing(null); setCorrection(EMPTY_CORRECTION);
-      await loadCashExpenses(location, selectedBusinessDate);
-      if (movedToAnotherDay) setError(`Correction saved as Draft on service day ${parsed.businessDate}.`);
+      const baseNotice = movedToAnotherDay
+        ? `Correction saved as Draft on service day ${parsed.businessDate}.`
+        : "Correction saved as Draft and must be confirmed again.";
+      setNotice(outcome.refreshError
+        ? `${baseNotice} The list could not refresh; reload before making further changes.`
+        : baseNotice);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Cash expense correction could not be saved.");
+      try { await loadCashExpenses(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
+      setEditing(null); setCorrection(EMPTY_CORRECTION);
+      setError("Correction could not be confirmed. Current persisted state was reloaded where possible; reopen the expense before attempting another correction.");
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   async function openOriginal(row: ApprovedInvoiceCost) {
     if (!supabase) return;
-    setOpeningId(row.invoice_id); setError("");
+    setOpeningId(row.invoice_id); setError(""); setNotice("");
     const result = await supabase.storage.from("invoice-originals").createSignedUrl(row.storage_path, 3600);
     setOpeningId(null);
     if (result.error || !result.data?.signedUrl) { setError(result.error?.message ?? "The private original could not be opened."); return; }
@@ -321,7 +375,8 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
     <header className="top"><div><div className="kicker">KAFKA</div><h1>Costs</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     <p className="muted">{location?.name} · {owner ? "owner" : "assigned manager"}</p>
     {owner && sections.length > 1 && <div className="costs-section-nav" aria-label="Costs section"><button className={section === "approved" ? "active" : ""} onClick={() => setSection("approved")}>Approved invoices</button><button className={section === "cash" ? "active" : ""} onClick={() => setSection("cash")}>Cash expenses</button></div>}
-    {locations.length > 1 && <section className="card compact-card"><label className="field"><span>Location</span><div className="input-wrap"><select value={location?.id ?? ""} onChange={(event) => void changeLocation(event.target.value)}>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></label></section>}
+    {locations.length > 1 && <section className="card compact-card"><label className="field"><span>Location</span><div className="input-wrap"><select disabled={Boolean(pendingCapture)} value={location?.id ?? ""} onChange={(event) => void changeLocation(event.target.value)}>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></label></section>}
+    {notice && <div className="banner">● {notice}</div>}
     {error && <p className="error" role="alert">{error}</p>}
 
     {owner && section === "approved" && <>
@@ -333,8 +388,8 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
     {section === "cash" && <>
       <div className="banner">● Each cash expense keeps an internal evidence record with the amount, service day, reason, actor and timestamp.</div>
-      <section className="card"><div className="kicker">SERVICE DAY</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Choose a day"}</h2><label className="field"><span>When cash left the register</span><div className="input-wrap"><input aria-label="Cash expense service day" type="date" max={currentBusinessDate} value={selectedBusinessDate} onChange={(event) => void changeBusinessDate(event.target.value)} /></div></label><p className="fine">Current and historical service days are allowed. Future days are blocked by the database.</p></section>
-      <section className="card"><div className="kicker">CAPTURE EVIDENCE</div><h2>Cash expense</h2><label className="field"><span>Amount</span><div className="input-wrap"><input inputMode="decimal" type="text" placeholder="0" value={capture.amount} onChange={(event) => setCapture((current) => ({ ...current, amount: event.target.value }))} /><b>CZK</b></div></label><label className="field"><span>Description / reason</span><textarea value={capture.description} onChange={(event) => setCapture((current) => ({ ...current, description: event.target.value }))} /></label><button className="btn" disabled={busy || !capture.amount.trim() || !capture.description.trim()} onClick={() => void captureExpense()}>{busy ? "Saving…" : "Capture expense"}</button><p className="fine">This creates Draft internal evidence. It does not change the daily Revenue total.</p></section>
+      <section className="card"><div className="kicker">SERVICE DAY</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Choose a day"}</h2><label className="field"><span>When cash left the register</span><div className="input-wrap"><input aria-label="Cash expense service day" type="date" max={currentBusinessDate} disabled={Boolean(pendingCapture)} value={selectedBusinessDate} onChange={(event) => void changeBusinessDate(event.target.value)} /></div></label><p className="fine">Current and historical service days are allowed. Future days are blocked by the database.</p></section>
+      <section className="card"><div className="kicker">CAPTURE EVIDENCE</div><h2>Cash expense</h2><label className="field"><span>Amount</span><div className="input-wrap"><input disabled={Boolean(pendingCapture)} inputMode="decimal" type="text" placeholder="0" value={capture.amount} onChange={(event) => setCapture((current) => ({ ...current, amount: event.target.value }))} /><b>CZK</b></div></label><label className="field"><span>Description / reason</span><textarea disabled={Boolean(pendingCapture)} value={capture.description} onChange={(event) => setCapture((current) => ({ ...current, description: event.target.value }))} /></label><button className="btn" disabled={busy || !capture.amount.trim() || !capture.description.trim()} onClick={() => void captureExpense()}>{busy ? "Saving…" : pendingCapture ? "Retry same capture" : "Capture expense"}</button>{pendingCapture && <p className="fine">This capture attempt is locked to the same UUID and payload until its result is confirmed. Reload the page before editing it.</p>}<p className="fine">This creates Draft internal evidence. It does not change the daily Revenue total.</p></section>
       <section className="card"><div className="kicker">CAPTURED ITEMS ONLY</div><h2>{cashRows.length} item{cashRows.length === 1 ? "" : "s"}</h2><div className="total-grid"><div className="metric"><span>Confirmed captured total</span><strong>{formatMinorUnits(capturedTotals.confirmedMinor, "CZK")}</strong></div><div className="metric"><span>Draft captured total</span><strong>{formatMinorUnits(capturedTotals.draftMinor, "CZK")}</strong></div></div><p className="fine">These totals are individual captured records only. No reconciliation is performed.</p></section>
       <section className="card"><div className="kicker">CASH EXPENSES</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Selected day"}</h2>{cashRows.length === 0 && !loading ? <p className="muted">No cash expenses captured for this service day.</p> : cashRows.map((entry) => {
         const events = auditEvents.filter((event) => event.cash_expense_id === entry.id);
