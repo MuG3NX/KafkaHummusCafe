@@ -17,7 +17,7 @@ This file remains the compact milestone index.
 
 ## Current priority order
 
-1. W0 website + reservations remain prominent but parked until the owner explicitly resumes the public-site build; no DNS change before preview acceptance.
+1. W0 website + reservations stay prominent but parked until the owner explicitly resumes the public-site build; no DNS change before preview acceptance.
 2. M4B1 controlled production rollout when secure Supabase production access is available.
 3. Close Issues #8/#10/#13 opportunistically with genuine workflows.
 4. M4B2 daily cash-expense comparison / acknowledgment.
