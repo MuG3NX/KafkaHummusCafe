@@ -34,72 +34,53 @@ This file remains the compact milestone index.
 15. Much later native POS/KDS/payments/table stack.
 
 ## M0 — Foundation + Touchable Preview
-
 Established the repository contract, phone-first visual direction and initial PWA foundation.
 
 ## M1 — Revenue
-
 Production source of truth for service-day revenue with exact money, 05:00 Europe/Prague cutoff, RLS, immutable normal submissions and owner audited corrections.
 
 ## M2 — Team
-
 ### M2A Shifts
 Employee own-phone Start/End, owner corrections, explicit service-day identity and hour totals.
-
 ### M2B Labor & Wages
 Future effective-dated hourly rates and operational monthly wage estimation from accepted closed shifts. No payroll/tax engine and no owner draws in employee wage rows.
-
 ### Later Scheduling
 Visual schedule only after shifts/wages are accepted and the workflow can remain simple.
 
 ## M3 — Documents / Invoices
-
 ### M3A Invoice Capture
 Private originals, extraction/manual drafts, human approval and append-only audit.
-
 ### M3B Invoice Inbox
 Later emailed PDF/forwarding intake feeding the same M3 document truth model.
 
 ## M4 — Costs + Closing
-
 ### M4A Approved Invoice Costs
 Owner-only CZK operational reporting from exact approved invoice snapshots.
-
 ### M4B1 Cash Expense Evidence
 Individual owner/assigned-manager cash/register-movement evidence; independent of the authoritative M1 daily aggregate.
-
 ### M4B2 Cash Expense Reconciliation
 Compare the M1 daily aggregate with confirmed M4B1 evidence. Initial mismatches support review/revision/acknowledgment rather than silent balancing or hard-blocking the close. A later invoice link may explain a cash expense without creating a duplicate cost.
-
 ### M4C Digital Closing / Service Day Hub
 Replace paper → Telegram photo → owner Excel with one audited digital close. Physical CZK/EUR/USD/GBP handover remains explicit entered/count truth, not an automatically derived authority. Trusted closers use a capability such as `can_close_day`; identities are not hard-coded. Evolve the UX toward a service-day dashboard and small manager handoff log instead of endlessly adding top-level tabs.
 
 ## M5 — Purchasing
-
 ### M5A FANY Order Draft
 FANY is the structured purchasing workflow. Mohammed checks the kitchen and decides both items and quantities; KAFKA records that FANY order sheet, actor/time history and ordered history; bar/management still places it through the existing FANY e-shop. Other phone/friend suppliers are not forced into M5A.
-
 ### M5B Supplier / Purchase / Receiving Foundation
 Only after M5A proves useful: canonical supplier/product identity, purchase orders, receiving and later ordered → received → invoiced comparison.
-
 Full inventory is deliberately deferred.
 
 ## M6 — Accountant / Reporting
-
 ### M6A POHODA Package
 Design exports/integration around the accountant's real POHODA workflow: approved invoices/originals, revenue/VAT-supporting evidence and bank-statement handoff. No official-accounting correctness claim until accountant acceptance.
-
 ### Later Owner Insights
 Supplier price history, recipe/menu costing and exception-first operating summaries once the underlying data is reliable.
 
 ## W0 — Public Website Ownership
-
 Issue #20. Owner-side Webglobe access is confirmed; keep registration/DNS there initially, inventory current records, reproduce the trusted Figma website under GitHub/owner-controlled hosting, and change only required apex/`www` DNS after preview acceptance. No unnecessary registrar/nameserver migration.
 
 ## W0R — Reservations
-
 Issue #23. V1 public bookings auto-confirm durably. Required fields: name, email, phone, date, time, party size; note optional. Slots run 09:00–17:00 every 30 minutes with at least 1 hour same-day lead time. Parties up to 6 auto-confirm online; larger parties contact the restaurant. All authenticated staff can read; owner/`can_manage_reservations` can change/cancel. Guest receives confirmation and later change/cancellation emails; owner receives new-booking notification. Database is authoritative; email is notification.
 
 ## Much later
-
 Inventory/par/waste, deeper scheduling/HR, public customer features beyond reservations, and eventually native POS/KDS/payments/table management only after the back-office platform is proven.
