@@ -66,7 +66,7 @@ Owner-side Webglobe access to `kafkahummus.cafe` is confirmed. Domain registrati
 
 ## W0R — Reservations
 
-**Launch-critical website product slice: Issue #23.**
+**Launch-critical website product slice: Issue #23. V1 policy is fully locked.**
 
 A valid public reservation submission auto-confirms in V1. The durable database record is authoritative; email is notification. Booking window is 09:00–17:00, every 30 minutes, with at least 1 hour same-day lead time. Online auto-confirmation supports parties up to 6; larger groups are directed to contact the restaurant. Guest confirmation and later change/cancellation emails are part of V1.
 
@@ -101,16 +101,7 @@ A photo is sent to Alessandro through Telegram and then manually copied into Exc
 
 ## Cash-register expenses
 
-Real examples include:
-
-- emergency supermarket purchases;
-- flowers;
-- pita;
-- cleaner;
-- occasional labor paid from the register;
-- cash-paid supplier invoices.
-
-The daily close aggregate may therefore contain both documented and undocumented movements.
+Real examples include emergency supermarket purchases, flowers, pita, cleaner, occasional labor paid from the register, and cash-paid supplier invoices. The daily close aggregate may therefore contain both documented and undocumented movements.
 
 A later cash-expense record may link to an approved invoice as explanatory evidence. Linking must not create a second expense or double count the same payment.
 
@@ -143,17 +134,11 @@ Other suppliers may be old-school phone/friend relationships handled directly by
 
 Full inventory is not currently a meaningful owner pain point. The owners are physically present, stock/preparation moves through their hands, theft is not a major concern and margins remain healthy.
 
-Therefore:
-
-**FANY ordering before inventory.**
-
-Inventory/par/waste moves forward only if ordering/costing needs make it genuinely useful.
+Therefore **FANY ordering before inventory**. Inventory/par/waste moves forward only if ordering/costing needs make it genuinely useful.
 
 ## Accountant
 
-Accounting workflow uses POHODA. The owner currently sends invoices, VAT material and bank statements.
-
-Future exports/integration should target the real POHODA workflow rather than generic accounting abstraction.
+Accounting workflow uses POHODA. The owner currently sends invoices, VAT material and bank statements. Future exports/integration should target the real POHODA workflow rather than generic accounting abstraction.
 
 ## Public website
 
@@ -244,339 +229,72 @@ Ship the architecture-approved Cash Expense Evidence Ledger without changing its
 
 ## M4B2 — Daily cash-expense reconciliation
 
-### Goal
+Compare two independent truths for one location/service day: the M1 `cash_register_expenses_czk_minor` aggregate and the sum of confirmed M4B1 evidence. A mismatch is non-blocking initially: add/correct evidence, revise the audited daily aggregate when it is wrong, or acknowledge a residual difference with reason. Do not silently rewrite either source.
 
-Compare the two independent truths for one location/service day:
-
-A. `revenue_entries.cash_register_expenses_czk_minor`
-
-B. sum of **confirmed** M4B1 cash-expense evidence.
-
-### Initial product behavior
-
-Show:
-
-- entered closing aggregate;
-- confirmed-evidence total;
-- exact difference.
-
-A mismatch is non-blocking in the first version. The workflow may:
-
-- add/correct missing evidence; or
-- revise the daily close through the existing audited owner correction path when the aggregate itself is wrong; or
-- acknowledge a residual difference with a required reason.
-
-Do not silently rewrite either source.
-
-### Later link
-
-A cash expense may link to an approved supplier invoice as explanatory evidence. The link must not create another cost/expense and must not double count the same payment.
-
-### Excluded
-
-Automatic balancing, tolerance invention, accounting write-offs, payment reconciliation, auto-generated expenses from invoices.
+A later cash-expense→approved-invoice link may explain a payment, but must not create another expense or double-count it.
 
 ---
 
 ## M4C — Digital closing + Service Day operating hub
 
-### Goal
-
 Replace paper → Telegram photo → owner Excel entry with one trusted close in KAFKA OS.
 
-### Closing data
+Closing data includes total/card/cash/register expenses, EUR/USD/GBP, physical CZK/EUR/USD/GBP handed over, closing note, closer identity and DB close timestamp. Physical handover remains explicit entered/count truth.
 
-The close should represent the real paper workflow, including:
+Authorization: owners have trusted close/correction authority; non-owner closers receive `can_close_day`; identities are not hard-coded.
 
-- total;
-- card;
-- cash;
-- register expenses;
-- EUR;
-- USD;
-- GBP;
-- physical CZK handed over;
-- physical EUR handed over;
-- physical USD handed over;
-- physical GBP handed over;
-- closing note;
-- closer identity;
-- DB close timestamp.
-
-Physical handover remains explicitly entered/count truth, never an automatically derived authority.
-
-### Authorization
-
-- owner: trusted close/correction authority;
-- non-owner closer: narrow `can_close_day` capability;
-- do not hard-code Sofiya/Dima/Danya.
-
-### Readiness view
-
-Closing should surface, but not necessarily hard-block on:
-
-- Revenue submission;
-- M4B2 expense difference;
-- open shifts;
-- draft cash-expense evidence;
-- invoices needing review;
-- manager note / follow-up item.
-
-### Service Day home
-
-This is the point where the UX should evolve from module tabs into an operating-day dashboard:
-
-- Revenue status;
-- team/working-now summary;
-- cash-expense state;
-- invoice review state;
-- reservation state;
-- closing readiness;
-- future FANY ordering state;
-- exceptions needing attention.
-
-Do not build a generic BI dashboard. Show the few things the owner/closer needs to act on.
-
-### Manager handoff
-
-A small manager log belongs naturally here:
-
-- service-day note;
-- supplier problem;
-- maintenance/problem note;
-- staff issue;
-- item/action for tomorrow.
-
-Searchable history later; no Slack clone.
+The Service Day home should evolve toward an exception-first operating dashboard showing Revenue, working team, cash expenses, invoice review, reservations, closing readiness, FANY order state and follow-ups. Add a small manager handoff log, not a generic chat system.
 
 ---
 
 ## M2B — Labor rates + wages
 
-### Goal
-
-Replace monthly labor-hours Excel calculation.
-
-### Model
-
-Use effective-dated hourly rates rather than a mutable single salary field.
-
-Example:
-
-- membership/employee;
-- hourly CZK rate;
-- valid-from date;
-- optional valid-to if useful.
-
-Accepted closed shifts × applicable rate produce monthly estimated wages.
-
-### Owner view
-
-Per employee/month:
-
-- total closed hours;
-- applicable rate periods;
-- estimated wage;
-- corrections reflected automatically from audited shift timestamps.
-
-### Excluded
-
-Taxes, official payroll, payslips, owner draws, benefits, tips unless separately scoped later.
+Use effective-dated hourly rates. Accepted closed shifts × applicable rate produce estimated monthly wages. Exclude taxes/payroll/payslips and owner draws.
 
 ---
 
 ## M5A — FANY Order Draft + history
 
-### Goal
-
-Digitize the real Mohammed→bar/management FANY workflow without inventing full inventory.
-
-### Real workflow
-
-Mohammed decides both product and quantity.
-
-Example:
-
-**FANY Order — tonight**
-
-- Tahini × 3
-- Chickpeas × 6
-- Olive oil × 2
-
-Prepared/changed by Mohammed.
-
-Then bar/management places the order in the existing FANY e-shop and marks the draft ordered.
-
-### Core behavior
-
-- reusable FANY product/usual-item list;
-- quantity-first mobile entry;
-- draft for current next order;
-- actor/time history;
-- mark ordered with actor/time;
-- previous-order history;
-- copy previous/usual order as a starting point if useful;
-- no automatic FANY submission until a later adapter is deliberately authorized.
-
-### Other suppliers
-
-Do not force Mohammed's phone/friend suppliers into M5A. They can remain handled directly while receipts/invoices enter the financial document flow.
+Digitize the real Mohammed→bar/management FANY workflow. Mohammed decides items and quantities; KAFKA stores the next FANY order sheet, actor/time history and ordered history; bar/management places it through the existing e-shop. Other phone/friend suppliers remain outside M5A for now.
 
 ---
 
 ## M5B — Supplier/product/purchase/receiving foundation
 
-Only after M5A proves useful.
-
-Potential stable identities:
-
-- supplier;
-- product;
-- supplier product/SKU/pack unit;
-- purchase order;
-- received quantities;
-- price history.
-
-Future high-value comparison:
-
-`ordered → received → invoiced`
-
-Do not build this merely because an ERP normally has it. Require real KAFKA value first.
+Only after M5A proves useful. Potential stable identities: supplier, product, supplier SKU/pack unit, purchase order, received quantities and price history. Future useful comparison: `ordered → received → invoiced`.
 
 ---
 
 ## M3B — Invoice inbox / emailed document intake
 
-### Goal
-
-Reduce handling of emailed PDFs and large paper/receipt volume.
-
-Potential inputs:
-
-- mobile camera/photo;
-- manual PDF upload;
-- owner-controlled invoice email inbox/forwarding;
-- later supplier-specific imports if useful.
-
-All routes feed the same M3 original-document + draft + human-approval model.
-
-Do not create a second invoice truth model.
+Add camera/manual PDF/owner-controlled email intake into the existing M3 original-document + draft + human-approval truth model. Do not create a second invoice model.
 
 ---
 
 ## M6A — POHODA/accountant package
 
-### Goal
-
-Reduce the monthly manual accountant handoff.
-
-First define the exact POHODA/accountant import process using official documentation and the accountant's real requirements.
-
-Potential package:
-
-- approved invoice register;
-- original invoice files;
-- revenue period summary;
-- VAT-supporting approved values;
-- correction/audit evidence where needed;
-- bank statement attachment/reference;
-- CSV/XML/API format only after POHODA requirements are verified.
-
-Do not claim official accounting correctness before accountant acceptance.
+Design around the accountant's real POHODA process. Potential package: approved invoice register/originals, revenue period summary, VAT-supporting approved values, correction evidence where needed, and bank-statement handoff. Verify official POHODA import requirements before choosing CSV/XML/API.
 
 ---
 
 # High-value later capabilities
 
-## Supplier price history
-
-Approved invoice/product identity should eventually answer questions such as:
-
-- Which supplier increased prices most?
-- What did tahini cost 30/60/180 days ago?
-- Which regular product changed sharply?
-
-This is more valuable to KAFKA than comprehensive inventory today.
-
-## Recipe/menu costing
-
-Once supplier-product identity and price history are reliable:
-
-recipe/BOM → current ingredient cost → plate cost → margin view.
-
-Do not build recipe costing on guessed/untrusted OCR product lines.
-
-## Scheduling
-
-After shifts and wages are accepted, a visual weekly schedule can replace Excel. Keep it mobile/clear rather than building full HR software.
-
-Possible later staff features: availability/time-off/shift swap only when current scheduling pain justifies them.
-
-## Inventory / pars / waste
-
-Deferred until ordering/costing creates a real reason. When it arrives, prioritize quick counts and key products over theoretical real-time stock precision.
-
-## Public menu publishing
-
-After W0 stabilizes the website, KAFKA OS may own a deliberately public menu/content model and publish prices/opening hours to the public site.
-
-## POS / KDS / payments
-
-Long-term ambition only.
-
-A future native POS should consume the same product/menu/location/service-day identities rather than becoming a separate system. KDS, table management and payments come only after a POS product contract exists.
+Supplier price history; recipe/menu costing once product identity is trustworthy; visual scheduling after shifts/wages; inventory/par/waste only when it becomes a real problem; public menu/opening-hour publishing from KAFKA OS after website stabilization; much later POS/KDS/payments/table management using the same core identities.
 
 ---
 
 # External product inspiration
 
-The project should learn patterns without inheriting other products' scope.
-
-## Restaurant365
-
-Useful lesson: restaurant finance, inventory, scheduling and operations become more valuable when they share one data model. KAFKA should preserve that connected-platform direction while remaining much smaller and more opinionated for one restaurant first.
-
-## MarginEdge
-
-Useful lessons: phone/email invoice intake, price movers, recipe costing, order management and daily controllable P&L all become possible after document/product identity is trustworthy.
-
-## 7shifts
-
-Useful lesson: a small manager log tied to the operating day/shift can replace scattered notes and improve handoff without creating a full messaging platform.
-
-## URY (open source)
-
-Useful lesson: one restaurant system can eventually cover POS, KDS, purchasing, recipes, opening/closing and P&L. Warning: that breadth is exactly why KAFKA must continue milestone-by-milestone rather than copying ERP scope.
-
-## Grocy (open source)
-
-Useful lesson for a later inventory phase: PWA-first quick counts, camera/barcode workflows and simple list interactions can make otherwise tedious stock entry usable.
+Learn patterns without inheriting scope: Restaurant365 for connected restaurant data, MarginEdge for invoice→cost insight, 7shifts for manager log/handoff, URY for eventual platform breadth and its ERP-scope warning, Grocy for later fast mobile stock interactions.
 
 ---
 
 # Operations / engineering roadmap
 
-## Protect `main`
-
-Current branch protection is not enabled. Before the repository becomes even more operationally critical, require PR + successful CI and prevent accidental direct main pushes.
-
-## Staging Supabase
-
-Move toward:
-
-`Vercel Preview → staging Supabase`
-
-`Vercel Production → production Supabase`
-
-This will make migration/workflow acceptance safer and reduce reliance on production for preview behavior.
-
-## Production migration workflow
-
-Create a repeatable authenticated rollout process where DB migration occurs and is verified before a frontend requiring the schema is merged/deployed.
-
-## Backup/PITR
-
-Resolve Issue #15. As KAFKA OS accumulates financial, labor and operational evidence, backup/restore readiness becomes business continuity rather than an engineering nice-to-have.
+- Protect `main` with PR + required CI before the repository becomes more operationally critical.
+- Move toward `Vercel Preview → staging Supabase` and `Vercel Production → production Supabase`.
+- Build a repeatable production migration workflow where DB migration/verification precedes frontend deployment.
+- Resolve backup/PITR Issue #15.
 
 ---
 
@@ -602,15 +320,4 @@ Resolve Issue #15. As KAFKA OS accumulates financial, labor and operational evid
 
 # Anti-drift rule
 
-A roadmap item is not implementation authorization by itself.
-
-Every new code slice still needs:
-
-1. exact current GitHub verification;
-2. scoped Issue/product contract;
-3. focused branch;
-4. migration/RLS/tests where applicable;
-5. CI + preview;
-6. architecture review;
-7. controlled rollout;
-8. real workflow acceptance before the issue is considered complete.
+A roadmap item is not implementation authorization by itself. Every new code slice still needs exact GitHub verification, scoped Issue, focused branch, migration/RLS/tests where applicable, CI + preview, architecture review, controlled rollout and real workflow acceptance.
