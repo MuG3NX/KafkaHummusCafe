@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  createOrReuseReconciliationAcknowledgmentAttempt,
+  reconciliationState,
+  reconciliationStateLabel,
+  type CashExpenseReconciliation,
+  type ReconciliationAcknowledgmentAttempt
+} from "../lib/cash-reconciliation";
+import {
   amountMinorToInput,
   canConfirmCashExpense,
   cashExpenseAuditLabel,
@@ -61,6 +68,10 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   const [cashRows, setCashRows] = useState<CashExpenseEntry[]>([]);
   const [auditEvents, setAuditEvents] = useState<CashExpenseAuditEvent[]>([]);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
+  const [reconciliation, setReconciliation] = useState<CashExpenseReconciliation | null>(null);
+  const [reconciliationError, setReconciliationError] = useState("");
+  const [acknowledgmentReason, setAcknowledgmentReason] = useState("");
+  const [pendingAcknowledgment, setPendingAcknowledgment] = useState<ReconciliationAcknowledgmentAttempt | null>(null);
   const [capture, setCapture] = useState<CashExpenseDraft>(EMPTY_CAPTURE);
   const [pendingCapture, setPendingCapture] = useState<CashExpenseCaptureAttempt | null>(null);
   const [editing, setEditing] = useState<CashExpenseEntry | null>(null);
@@ -74,6 +85,7 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   const owner = role === "owner";
   const manager = role === "manager";
   const sections = costsSectionsForRole(role);
+  const pendingFinancialAttempt = Boolean(pendingCapture || pendingAcknowledgment);
 
   async function loadApprovedCosts(targetLocation: Location, targetMonth: string) {
     if (!supabase) return;
@@ -122,6 +134,29 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
       ((profilesResult.data ?? []) as Array<{ id: string; display_name: string | null }>)
         .map((profile) => [profile.id, profile.display_name?.trim() || "Team member"])
     ));
+  }
+
+  async function loadReconciliation(targetLocation: Location, businessDate: string) {
+    if (!supabase) return;
+    const result = await supabase.rpc("get_cash_expense_reconciliation", {
+      p_location_id: targetLocation.id,
+      p_business_date: businessDate
+    });
+    if (result.error) throw result.error;
+    const row = firstRpcRow(result.data as CashExpenseReconciliation[] | CashExpenseReconciliation | null);
+    if (!row) throw new Error("The reconciliation result was not returned.");
+    setReconciliation(row);
+  }
+
+  async function loadCashWorkspace(targetLocation: Location, businessDate: string) {
+    await loadCashExpenses(targetLocation, businessDate);
+    try {
+      await loadReconciliation(targetLocation, businessDate);
+      setReconciliationError("");
+    } catch (caught) {
+      setReconciliation(null);
+      setReconciliationError(caught instanceof Error ? caught.message : "Daily reconciliation could not be loaded.");
+    }
   }
 
   async function currentDateFor(targetLocation: Location): Promise<string> {
@@ -180,7 +215,7 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
       setCapture({ ...EMPTY_CAPTURE, businessDate });
       setMonth(selectedMonth);
       if (nextRole === "owner") await loadApprovedCosts(currentLocation, selectedMonth);
-      await loadCashExpenses(currentLocation, businessDate);
+      await loadCashWorkspace(currentLocation, businessDate);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Costs could not be loaded.");
     }
@@ -192,10 +227,10 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
   useEffect(() => { void loadWorkspace(); if (!supabase) return; const { data } = supabase.auth.onAuthStateChange(() => { void loadWorkspace(); }); return () => data.subscription.unsubscribe(); }, [supabase]);
 
   async function changeLocation(locationId: string) {
-    if (pendingCapture) { setError("Finish or reload the pending capture before changing location."); return; }
+    if (pendingFinancialAttempt) { setError("Finish or reload the pending financial action before changing location."); return; }
     const target = locations.find((candidate) => candidate.id === locationId);
     if (!target) return;
-    setLoading(true); setError(""); setNotice(""); setLocation(target); setEditing(null);
+    setLoading(true); setError(""); setNotice(""); setLocation(target); setEditing(null); setAcknowledgmentReason("");
     try {
       const businessDate = await currentDateFor(target);
       const selectedMonth = month || currentMonthForTimezone(new Date(), target.timezone);
@@ -203,7 +238,7 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
       setSelectedBusinessDate(businessDate);
       setCapture({ ...EMPTY_CAPTURE, businessDate });
       if (owner) await loadApprovedCosts(target, selectedMonth);
-      await loadCashExpenses(target, businessDate);
+      await loadCashWorkspace(target, businessDate);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The location could not be loaded.");
     }
@@ -221,12 +256,13 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   async function changeBusinessDate(nextDate: string) {
     if (!location || !nextDate) return;
-    if (pendingCapture) { setError("Finish or reload the pending capture before changing service day."); return; }
+    if (pendingFinancialAttempt) { setError("Finish or reload the pending financial action before changing service day."); return; }
     if (nextDate > currentBusinessDate) { setError("Cash expenses cannot use a future service day."); return; }
     setSelectedBusinessDate(nextDate);
     setCapture((current) => ({ ...current, businessDate: nextDate }));
+    setAcknowledgmentReason("");
     setEditing(null); setLoading(true); setError(""); setNotice("");
-    try { await loadCashExpenses(location, nextDate); }
+    try { await loadCashWorkspace(location, nextDate); }
     catch (caught) { setCashRows([]); setError(caught instanceof Error ? caught.message : "Cash expenses could not be loaded."); }
     setLoading(false);
   }
@@ -253,12 +289,12 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
           if (!saved) throw new Error("The captured expense was not returned.");
           return saved;
         },
-        () => loadCashExpenses(location, attempt!.businessDate)
+        () => loadCashWorkspace(location, attempt!.businessDate)
       );
       setPendingCapture(null);
       setCapture({ amount: "", description: "", businessDate: selectedBusinessDate });
       setNotice(outcome.refreshError
-        ? "Draft captured. The list could not refresh; reload before making further changes."
+        ? "Draft captured. The cash-expense list could not refresh; reload before making further changes."
         : "Draft captured.");
     } catch (caught) {
       if (attempt) setPendingCapture(attempt);
@@ -284,13 +320,13 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
           if (!saved) throw new Error("The confirmed expense was not returned.");
           return saved;
         },
-        () => loadCashExpenses(location, selectedBusinessDate)
+        () => loadCashWorkspace(location, selectedBusinessDate)
       );
       setNotice(outcome.refreshError
-        ? "Expense confirmed. The list could not refresh; reload before making further changes."
+        ? "Expense confirmed. The cash-expense list could not refresh; reload before making further changes."
         : "Expense confirmed.");
-    } catch (caught) {
-      try { await loadCashExpenses(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
+    } catch {
+      try { await loadCashWorkspace(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
       setError("Confirmation could not be confirmed. Current persisted state was reloaded where possible; review the expense before retrying.");
     } finally {
       setBusy(false);
@@ -330,19 +366,69 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
           if (!saved) throw new Error("The corrected expense was not returned.");
           return saved;
         },
-        () => loadCashExpenses(location, selectedBusinessDate)
+        () => loadCashWorkspace(location, selectedBusinessDate)
       );
       setEditing(null); setCorrection(EMPTY_CORRECTION);
       const baseNotice = movedToAnotherDay
         ? `Correction saved as Draft on service day ${parsed.businessDate}.`
         : "Correction saved as Draft and must be confirmed again.";
       setNotice(outcome.refreshError
-        ? `${baseNotice} The list could not refresh; reload before making further changes.`
+        ? `${baseNotice} The cash-expense list could not refresh; reload before making further changes.`
         : baseNotice);
-    } catch (caught) {
-      try { await loadCashExpenses(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
+    } catch {
+      try { await loadCashWorkspace(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
       setEditing(null); setCorrection(EMPTY_CORRECTION);
       setError("Correction could not be confirmed. Current persisted state was reloaded where possible; reopen the expense before attempting another correction.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function acknowledgeDifference() {
+    if (!supabase || !location || !reconciliation || !navigator.onLine) {
+      setError("Acknowledgment needs a live connection and current reconciliation state.");
+      return;
+    }
+    setBusy(true); setError(""); setNotice("");
+    let attempt = pendingAcknowledgment;
+    try {
+      attempt = createOrReuseReconciliationAcknowledgmentAttempt(
+        pendingAcknowledgment,
+        reconciliation,
+        acknowledgmentReason,
+        () => crypto.randomUUID()
+      );
+      setPendingAcknowledgment(attempt);
+      const outcome = await runCashExpenseWrite(
+        async () => {
+          const result = await supabase.rpc("acknowledge_cash_expense_difference", {
+            p_acknowledgment_id: attempt!.id,
+            p_location_id: attempt!.locationId,
+            p_business_date: attempt!.businessDate,
+            p_expected_revenue_entry_id: attempt!.revenueEntryId,
+            p_expected_revenue_entry_version: attempt!.revenueEntryVersion,
+            p_expected_closing_expenses_czk_minor: attempt!.closingMinor,
+            p_expected_confirmed_cash_expenses_czk_minor: attempt!.confirmedMinor,
+            p_expected_confirmed_source_fingerprint: attempt!.confirmedFingerprint,
+            p_expected_difference_czk_minor: attempt!.differenceMinor,
+            p_reason: attempt!.reason
+          });
+          if (result.error) throw result.error;
+          if (!firstRpcRow(result.data as unknown[] | unknown | null)) throw new Error("The acknowledgment was not returned.");
+          return true;
+        },
+        () => loadCashWorkspace(location, selectedBusinessDate)
+      );
+      setPendingAcknowledgment(null);
+      setAcknowledgmentReason("");
+      setNotice(outcome.refreshError
+        ? "Difference acknowledged. The cash-expense list could not refresh; reload before making further changes."
+        : "Difference acknowledged.");
+    } catch (caught) {
+      if (attempt) setPendingAcknowledgment(attempt);
+      try { await loadCashWorkspace(location, selectedBusinessDate); } catch { /* best-effort authoritative reload */ }
+      const detail = caught instanceof Error ? caught.message : "The acknowledgment response was unavailable.";
+      setError(`Acknowledgment could not be confirmed. Retry will reuse the same exact reconciliation snapshot. ${detail}`);
     } finally {
       setBusy(false);
     }
@@ -369,13 +455,17 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
   const total = totalCzkCosts(rows);
   const capturedTotals = cashExpenseTotals(cashRows);
+  const reconciliationStatus = reconciliation ? reconciliationState(reconciliation) : null;
+  const differenceMinor = reconciliation?.difference_czk_minor === null || reconciliation?.difference_czk_minor === undefined
+    ? null
+    : BigInt(reconciliation.difference_czk_minor);
 
   return <main className="app-shell">
     <div className="module-nav module-nav-four"><button onClick={onOpenRevenue}>Revenue</button><button onClick={onOpenInvoices}>Invoices</button><button className="active">Costs</button><button onClick={onOpenShifts}>Shifts</button></div>
     <header className="top"><div><div className="kicker">KAFKA</div><h1>Costs</h1></div><button className="avatar" aria-label="Sign out" onClick={() => { void supabase?.auth.signOut(); }}>K</button></header>
     <p className="muted">{location?.name} · {owner ? "owner" : "assigned manager"}</p>
     {owner && sections.length > 1 && <div className="costs-section-nav" aria-label="Costs section"><button className={section === "approved" ? "active" : ""} onClick={() => setSection("approved")}>Approved invoices</button><button className={section === "cash" ? "active" : ""} onClick={() => setSection("cash")}>Cash expenses</button></div>}
-    {locations.length > 1 && <section className="card compact-card"><label className="field"><span>Location</span><div className="input-wrap"><select disabled={Boolean(pendingCapture)} value={location?.id ?? ""} onChange={(event) => void changeLocation(event.target.value)}>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></label></section>}
+    {locations.length > 1 && <section className="card compact-card"><label className="field"><span>Location</span><div className="input-wrap"><select disabled={pendingFinancialAttempt} value={location?.id ?? ""} onChange={(event) => void changeLocation(event.target.value)}>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></div></label></section>}
     {notice && <div className="banner">● {notice}</div>}
     {error && <p className="error" role="alert">{error}</p>}
 
@@ -388,9 +478,34 @@ export function CostsApp({ onOpenRevenue, onOpenInvoices, onOpenShifts }: CostsA
 
     {section === "cash" && <>
       <div className="banner">● Each cash expense keeps an internal evidence record with the amount, service day, reason, actor and timestamp.</div>
-      <section className="card"><div className="kicker">SERVICE DAY</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Choose a day"}</h2><label className="field"><span>When cash left the register</span><div className="input-wrap"><input aria-label="Cash expense service day" type="date" max={currentBusinessDate} disabled={Boolean(pendingCapture)} value={selectedBusinessDate} onChange={(event) => void changeBusinessDate(event.target.value)} /></div></label><p className="fine">Current and historical service days are allowed. Future days are blocked by the database.</p></section>
+      <section className="card"><div className="kicker">SERVICE DAY</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Choose a day"}</h2><label className="field"><span>When cash left the register</span><div className="input-wrap"><input aria-label="Cash expense service day" type="date" max={currentBusinessDate} disabled={pendingFinancialAttempt} value={selectedBusinessDate} onChange={(event) => void changeBusinessDate(event.target.value)} /></div></label><p className="fine">Current and historical service days are allowed. Future days are blocked by the database.</p></section>
+
+      <section className="card">
+        <div className="kicker">DAILY RECONCILIATION</div>
+        <h2>{reconciliationStatus ? reconciliationStateLabel(reconciliationStatus) : "Reconciliation"}</h2>
+        {reconciliationError && <p className="error" role="status">Reconciliation unavailable: {reconciliationError}</p>}
+        {reconciliation && reconciliationStatus === "no_revenue" && <><p className="sub">No submitted Revenue entry exists for this service day, so there is no closing expense aggregate to compare yet.</p><p className="fine">Confirmed evidence: {formatMinorUnits(reconciliation.confirmed_cash_expenses_czk_minor, "CZK")} · Draft items: {reconciliation.draft_count}</p></>}
+        {reconciliation && reconciliation.has_revenue && <>
+          <div className="total-grid">
+            <div className="metric"><span>Closing register expenses</span><strong>{formatMinorUnits(reconciliation.closing_expenses_czk_minor!, "CZK")}</strong></div>
+            <div className="metric"><span>Confirmed cash evidence</span><strong>{formatMinorUnits(reconciliation.confirmed_cash_expenses_czk_minor, "CZK")}</strong></div>
+            <div className="metric"><span>Difference</span><strong>{formatMinorUnits(reconciliation.difference_czk_minor!, "CZK")}</strong></div>
+          </div>
+          <p className="fine">{reconciliation.confirmed_count} confirmed · {reconciliation.draft_count} draft. Difference = closing aggregate − confirmed evidence.</p>
+          {reconciliationStatus === "matched" && <div className="banner">● The closing aggregate is fully explained by confirmed evidence.</div>}
+          {reconciliationStatus === "acknowledged" && <div className="banner">● Acknowledged: {reconciliation.acknowledgment_reason}{reconciliation.acknowledged_at ? ` · ${formatInstant(reconciliation.acknowledged_at)}` : ""}</div>}
+          {reconciliationStatus === "needs_review" && <>
+            <p className="sub">{differenceMinor !== null && differenceMinor > 0n ? "The closing aggregate is higher than confirmed evidence." : "Confirmed evidence is higher than the closing aggregate."} Add/correct evidence, correct Revenue if the closing number is wrong, or acknowledge a real residual difference.</p>
+            <label className="field"><span>Acknowledgment reason</span><textarea disabled={Boolean(pendingAcknowledgment)} value={acknowledgmentReason} onChange={(event) => setAcknowledgmentReason(event.target.value)} /></label>
+            <button className="btn secondary" disabled={busy || (!pendingAcknowledgment && !acknowledgmentReason.trim())} onClick={() => void acknowledgeDifference()}>{busy ? "Saving…" : pendingAcknowledgment ? "Retry same acknowledgment" : "Acknowledge difference"}</button>
+            {pendingAcknowledgment && <p className="fine">This retry is locked to the same UUID and exact Revenue/evidence snapshot. Reload before changing the acknowledgment.</p>}
+          </>}
+        </>}
+        <p className="fine">Operational reconciliation only. It does not auto-balance or change Revenue/cash-expense evidence.</p>
+      </section>
+
       <section className="card"><div className="kicker">CAPTURE EVIDENCE</div><h2>Cash expense</h2><label className="field"><span>Amount</span><div className="input-wrap"><input disabled={Boolean(pendingCapture)} inputMode="decimal" type="text" placeholder="0" value={capture.amount} onChange={(event) => setCapture((current) => ({ ...current, amount: event.target.value }))} /><b>CZK</b></div></label><label className="field"><span>Description / reason</span><textarea disabled={Boolean(pendingCapture)} value={capture.description} onChange={(event) => setCapture((current) => ({ ...current, description: event.target.value }))} /></label><button className="btn" disabled={busy || !capture.amount.trim() || !capture.description.trim()} onClick={() => void captureExpense()}>{busy ? "Saving…" : pendingCapture ? "Retry same capture" : "Capture expense"}</button>{pendingCapture && <p className="fine">This capture attempt is locked to the same UUID and payload until its result is confirmed. Reload the page before editing it.</p>}<p className="fine">This creates Draft internal evidence. It does not change the daily Revenue total.</p></section>
-      <section className="card"><div className="kicker">CAPTURED ITEMS ONLY</div><h2>{cashRows.length} item{cashRows.length === 1 ? "" : "s"}</h2><div className="total-grid"><div className="metric"><span>Confirmed captured total</span><strong>{formatMinorUnits(capturedTotals.confirmedMinor, "CZK")}</strong></div><div className="metric"><span>Draft captured total</span><strong>{formatMinorUnits(capturedTotals.draftMinor, "CZK")}</strong></div></div><p className="fine">These totals are individual captured records only. No reconciliation is performed.</p></section>
+      <section className="card"><div className="kicker">CAPTURED ITEMS</div><h2>{cashRows.length} item{cashRows.length === 1 ? "" : "s"}</h2><div className="total-grid"><div className="metric"><span>Confirmed captured total</span><strong>{formatMinorUnits(capturedTotals.confirmedMinor, "CZK")}</strong></div><div className="metric"><span>Draft captured total</span><strong>{formatMinorUnits(capturedTotals.draftMinor, "CZK")}</strong></div></div><p className="fine">These are individual evidence totals. Daily reconciliation is shown above.</p></section>
       <section className="card"><div className="kicker">CASH EXPENSES</div><h2>{selectedBusinessDate ? formatCashExpenseServiceDay(selectedBusinessDate) : "Selected day"}</h2>{cashRows.length === 0 && !loading ? <p className="muted">No cash expenses captured for this service day.</p> : cashRows.map((entry) => {
         const events = auditEvents.filter((event) => event.cash_expense_id === entry.id);
         return <article className="cash-expense-row" key={entry.id}>

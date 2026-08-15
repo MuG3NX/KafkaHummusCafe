@@ -7,15 +7,17 @@ The controlling long-range product map is now [`KAFKA_MASTER_ROADMAP_V2.md`](KAF
 - M2A Shifts: production-deployed; genuine employee acceptance remains open in Issue #8.
 - M3A Invoice Capture: production-deployed; legitimate real-invoice acceptance remains open in Issue #10.
 - M4A Approved Invoice Costs: production-deployed; owner acceptance remains open in Issue #13.
-- M4B1 Cash Expense Evidence Ledger: architecture-approved in draft PR #18 at exact head `868d12528b9dff9e492edd6ed7a5c2152b77ddcb`; production rollout pending.
+- M4B1 Cash Expense Evidence Ledger: production migration + application rollout complete at main `c71750b497163b5ba219d20528a4abafd5a52851`; genuine owner/manager acceptance remains open in Issue #17.
+- M4B2 Cash Expense Reconciliation: active draft implementation in Issue #24 / PR #32; no production migration applied.
+- M4C Digital Closing / Service Day Hub: scoped in Issue #25; not implemented.
 - W0 Website Takeover: owner Webglobe/domain/DNS access confirmed in Issue #20; build parked until owner explicitly resumes it.
 - W0R Reservations: V1 workflow fully locked in Issue #23; launch-critical with the rebuilt public website.
 
 ## Priority order
 1. W0 website + reservations remain parked but prominent; no DNS change before preview acceptance.
-2. M4B1 production rollout when secure Supabase production access is available.
+2. Close M4B1 Issue #17 with one genuine production cash-expense capture → confirm workflow when convenient.
 3. Close Issues #8/#10/#13 opportunistically with genuine workflows.
-4. M4B2 daily cash-expense comparison / acknowledgment.
+4. M4B2 daily cash-expense comparison / acknowledgment — active draft.
 5. M4C digital closing + Service Day owner/manager hub.
 6. M2B hourly rates + wage estimation/export.
 7. M5A FANY order sheet/history preserving Mohammed's real workflow.
