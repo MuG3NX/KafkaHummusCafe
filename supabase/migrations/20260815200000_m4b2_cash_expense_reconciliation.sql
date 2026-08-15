@@ -190,6 +190,18 @@ begin
   if p_acknowledgment_id is null or p_location_id is null or p_business_date is null then
     raise exception 'Acknowledgment id, location and service day are required';
   end if;
+  if p_expected_revenue_entry_id is null
+     or p_expected_revenue_entry_version is null
+     or p_expected_revenue_entry_version <= 0
+     or p_expected_closing_expenses_czk_minor is null
+     or p_expected_closing_expenses_czk_minor < 0
+     or p_expected_confirmed_cash_expenses_czk_minor is null
+     or p_expected_confirmed_cash_expenses_czk_minor < 0
+     or p_expected_confirmed_source_fingerprint is null
+     or p_expected_confirmed_source_fingerprint !~ '^[0-9a-f]{64}$'
+     or p_expected_difference_czk_minor is null then
+    raise exception 'A complete expected reconciliation snapshot is required';
+  end if;
 
   normalized_reason := trim(coalesce(p_reason, ''));
   if length(normalized_reason) = 0 then
