@@ -1,6 +1,13 @@
-export type Currency = "CZK" | "EUR";
+export type Currency = "CZK" | "EUR" | "USD" | "GBP";
 
 const MINOR_UNITS_PER_MAJOR = 100n;
+
+const CURRENCY_LOCALE: Record<Currency, string> = {
+  CZK: "cs-CZ",
+  EUR: "en-IE",
+  USD: "en-US",
+  GBP: "en-GB"
+};
 
 export function parseMoneyToMinorUnits(input: string, currency: Currency): bigint {
   const normalized = input.trim().replace(/\s/g, "").replace(",", ".");
@@ -17,7 +24,7 @@ export function formatMinorUnits(value: bigint | string | number, currency: Curr
   const absolute = amount < 0n ? -amount : amount;
   const major = absolute / MINOR_UNITS_PER_MAJOR;
   const minor = (absolute % MINOR_UNITS_PER_MAJOR).toString().padStart(2, "0");
-  const locale = currency === "CZK" ? "cs-CZ" : "en-IE";
+  const locale = CURRENCY_LOCALE[currency];
   const wholeParts = new Intl.NumberFormat(locale, {
     style: "currency",
     currency,
