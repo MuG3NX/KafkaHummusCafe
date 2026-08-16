@@ -2,7 +2,21 @@
 
 ## Status
 
-M4B1 Cash Expense Evidence and M4B2 reconciliation are production-deployed, with genuine workflow acceptance still open in Issues #17 and #24. M4C is the active draft implementation in Issue #25 / PR #33.
+M4B1 Cash Expense Evidence and M4B2 reconciliation are production-deployed, with genuine workflow acceptance still open in Issues #17 and #24. M4C is the active implementation in Issue #25 / PR #33.
+
+**Architecture approved at exact semantic head `198b62431d67af2ebdb7193516a494c6c93cf6e8`.**
+
+Validation at that head:
+
+- typecheck: pass;
+- lint: pass;
+- client tests: 59/59;
+- production build: pass;
+- clean Supabase migration reset: pass;
+- pgTAP/RLS: 381/381;
+- Vercel Preview: success.
+
+No production M4C migration had been applied at the time of this architecture approval. Any later semantic application/database change reopens delta review. A filename-only migration reconciliation required to match Supabase MCP production history does not reopen semantic architecture if the SQL blob remains byte-identical.
 
 ## Objective
 
