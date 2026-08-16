@@ -65,7 +65,7 @@ describe("digital closing domain", () => {
   });
 
   it("rejects negative closing money", () => {
-    expect(() => validateClosingDraft({ usd: "-1", gbp: "0", physicalEur: "0", physicalUsd: "0", physicalGbp: "0", note: "" })).toThrow(/cannot be negative/);
+    expect(() => validateClosingDraft({ usd: "-1", gbp: "0", physicalEur: "0", physicalUsd: "0", physicalGbp: "0", note: "" })).toThrow(/valid USD amount/);
   });
 
   it("retains exact values beyond the JavaScript safe integer range", () => {
